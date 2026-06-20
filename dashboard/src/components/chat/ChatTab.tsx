@@ -14,6 +14,7 @@ export default function ChatTab({ wsId }: { wsId: number }) {
   const [loading, setLoading] = useState(true);
   const [showBuilder, setShowBuilder] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [sendError, setSendError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -30,11 +31,16 @@ export default function ChatTab({ wsId }: { wsId: number }) {
 
   const send = async () => {
     if (!text.trim() && !uploadFile) return;
+    setSendError('');
     const form = new FormData();
     if (text.trim()) form.append('message', text);
     if (uploadFile) form.append('file', uploadFile);
-    const { data } = await api.post(`/workspaces/${wsId}/chat`, form).catch(() => ({ data: null }));
-    if (data) { setMessages((prev) => [...prev, data.message]); setText(''); setUploadFile(null); if (fileRef.current) fileRef.current.value = ''; }
+    try {
+      const { data } = await api.post(`/workspaces/${wsId}/chat`, form);
+      if (data) { setMessages((prev) => [...prev, data.message]); setText(''); setUploadFile(null); if (fileRef.current) fileRef.current.value = ''; }
+    } catch {
+      setSendError('فشل الإرسال');
+    }
   };
 
   const toggleAction = async (id: number) => {
@@ -121,6 +127,7 @@ export default function ChatTab({ wsId }: { wsId: number }) {
           className="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="اكتب رسالة..." />
         <button onClick={send} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">إرسال</button>
       </div>
+      {sendError && <p className="text-xs text-red-500">{sendError}</p>}
     </div>
   );
 }
