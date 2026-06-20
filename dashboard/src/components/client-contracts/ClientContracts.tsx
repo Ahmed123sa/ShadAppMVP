@@ -1,0 +1,100 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import ContractDetailModal from './ContractDetailModal';
+
+export default function ClientContracts({ wsId }: { wsId: number }) {
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [viewContract, setViewContract] = useState<any>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: number; action: string } | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    api.get(`/workspaces/${wsId}/contracts`)
+      .then(({ data }) => setContracts(data.contracts || []))
+      .catch(() => setError('فشل تحميل العقود'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, [wsId]);
+
+  const doAction = async (id: number, action: string) => {
+    const { data } = await api.post(`/contracts/${id}/client-action`, { action }).catch(() => ({ data: null }));
+    if (data) {
+      setContracts((prev) => prev.map((c) => c.id === id ? data.contract : c));
+      setViewContract(null);
+    }
+    setConfirmAction(null);
+  };
+
+  if (loading) return <LoadingSkeleton />;
+  if (error) return <p className="text-sm text-red-500 text-center py-8">{error}</p>;
+
+  return (
+    <div className="space-y-3">
+      {contracts.length === 0 ? <EmptyState message="لا توجد عقود" /> : null}
+      {contracts.map((c) => (
+        <div key={c.id} className="border rounded-lg p-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-medium">{c.title}</h4>
+              {c.value > 0 && <p className="text-xs text-zinc-500">{c.value} ر.س</p>}
+              {c.required_documents?.length > 0 && <p className="text-xs text-amber-600 mt-0.5">📎 {c.required_documents.length} مستند مطلوب</p>}
+            </div>
+            <StatusBadge status={c.status} />
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button onClick={() => setViewContract(c)} className="text-xs text-blue-600 hover:underline">
+              عرض التفاصيل
+            </button>
+            {c.status === 'sent' && (
+              <>
+                <button onClick={() => setConfirmAction({ id: c.id, action: 'approved' })}
+                  className="text-xs text-emerald-600 hover:underline">✔ موافقة</button>
+                <button onClick={() => setConfirmAction({ id: c.id, action: 'edit_requested' })}
+                  className="text-xs text-amber-600 hover:underline">✎ طلب تعديل</button>
+                <button onClick={() => setConfirmAction({ id: c.id, action: 'rejected' })}
+                  className="text-xs text-red-600 hover:underline">✘ رفض</button>
+              </>
+            )}
+            {c.status === 'company_approved' && (
+              <p className="text-xs text-emerald-600 mt-1">✅ تم اعتماد العقد من الشركة</p>
+            )}
+            {c.status === 'company_approved' && c.pdf_url && (
+              <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-emerald-600 hover:underline">📄 تحميل العقد النهائي</a>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {viewContract && (
+        <ContractDetailModal
+          contract={viewContract}
+          wsId={wsId}
+          onClose={() => setViewContract(null)}
+          onAction={(action) => setConfirmAction({ id: viewContract.id, action })}
+          onUpload={load}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.action === 'approved' ? 'موافقة على العقد' : confirmAction?.action === 'edit_requested' ? 'طلب تعديل العقد' : 'رفض العقد'}
+        message={confirmAction?.action === 'approved' ? 'تأكيد الموافقة على هذا العقد؟' : confirmAction?.action === 'edit_requested' ? 'تأكيد طلب تعديل هذا العقد؟' : 'تأكيد رفض هذا العقد؟'}
+        confirmLabel={confirmAction?.action === 'approved' ? 'موافقة' : confirmAction?.action === 'edit_requested' ? 'طلب تعديل' : 'رفض'}
+        cancelLabel="إلغاء"
+        variant={confirmAction?.action === 'rejected' ? 'danger' : 'default'}
+        onConfirm={() => confirmAction && doAction(confirmAction.id, confirmAction.action)}
+        onCancel={() => setConfirmAction(null)}
+      />
+    </div>
+  );
+}

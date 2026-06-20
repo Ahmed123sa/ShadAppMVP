@@ -1,0 +1,29 @@
+# md and plans
+*.md
+
+# dependencies
+dashboard/node_modules
+backend/vendor
+
+# env
+.env
+.env.*
+
+# build
+dashboard/.next
+backend/storage/framework/cache/data/*
+!backend/storage/framework/cache/data/.gitkeep
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitkeep
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitkeep
+backend/storage/logs/*.log
+
+# laravel
+backend/bootstrap/cache/*.php
+backend/storage/app/public/contracts/*
+backend/storage/app/public/workspace-*
+
+# os
+.DS_Store
+Thumbs.db

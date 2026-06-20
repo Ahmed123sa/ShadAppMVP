@@ -1,0 +1,293 @@
+<?php
+
+namespace App\Domains\Contract;
+
+use App\Models\Contract;
+use App\Models\ContractClause;
+use App\Models\ContractClauseTemplate;
+use App\Models\Workspace;
+use App\Models\AuditLog;
+use App\Events\ContractSent;
+use App\Events\ContractClientApproved;
+use App\Events\ContractCompanyApproved;
+use App\Events\ContractCompleted;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+class ContractController extends Controller
+{
+    public function templates(): JsonResponse
+    {
+        $templates = ContractClauseTemplate::where('is_active', true)->orderBy('sort_order')->get();
+        return response()->json(['templates' => $templates]);
+    }
+
+    public function index(Workspace $workspace): JsonResponse
+    {
+        return response()->json(['contracts' => $workspace->contracts()->with('clauses', 'requiredDocuments.files')->latest()->get()]);
+    }
+
+    public function store(Request $request, Workspace $workspace): JsonResponse
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'value' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'clauses' => 'nullable|array',
+            'clauses.*.content' => 'required|string',
+            'clauses.*.type' => 'in:fixed,optional,custom',
+            'required_documents' => 'nullable|array',
+            'required_documents.*.name' => 'required|string|max:255',
+            'required_documents.*.description' => 'nullable|string',
+        ]);
+
+        $contract = $workspace->contracts()->create([
+            'title' => $request->title,
+            'value' => $request->value ?? 0,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'status' => 'draft',
+            'created_by' => $request->user()->id,
+        ]);
+
+        if ($request->clauses) {
+            foreach ($request->clauses as $i => $clause) {
+                $contract->clauses()->create([
+                    'content' => $clause['content'],
+                    'type' => $clause['type'] ?? 'custom',
+                    'sort_order' => $i,
+                ]);
+            }
+        }
+
+        if ($request->required_documents) {
+            foreach ($request->required_documents as $i => $doc) {
+                $contract->requiredDocuments()->create([
+                    'name' => $doc['name'],
+                    'description' => $doc['description'] ?? null,
+                    'is_required' => true,
+                    'sort_order' => $i,
+                ]);
+            }
+        }
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.created',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->load('clauses', 'requiredDocuments')], 201);
+    }
+
+    public function show(Contract $contract): JsonResponse
+    {
+        return response()->json(['contract' => $contract->load('clauses', 'workspace', 'requiredDocuments')]);
+    }
+
+    public function update(Request $request, Contract $contract): JsonResponse
+    {
+        $request->validate([
+            'title' => 'string|max:255',
+            'value' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'in:draft,sent,client_approved,client_rejected,edit_requested,company_approved,completed,archived',
+        ]);
+
+        $contract->update($request->only(['title', 'value', 'start_date', 'end_date', 'status']));
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.updated',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->fresh()->load('clauses')]);
+    }
+
+    public function destroy(Request $request, Contract $contract): JsonResponse
+    {
+        $contract->delete();
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.deleted',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['message' => 'تم حذف العقد']);
+    }
+
+    public function send(Request $request, Contract $contract): JsonResponse
+    {
+        $contract->update(['status' => 'sent']);
+
+        event(new ContractSent($contract));
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.sent',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->fresh()->load('clauses')]);
+    }
+
+    public function clientAction(Request $request, Contract $contract): JsonResponse
+    {
+        $request->validate(['action' => 'required|in:approved,rejected,edit_requested']);
+
+        $status = $request->action === 'edit_requested' ? 'edit_requested' : 'client_' . $request->action;
+
+        $contract->update([
+            'status' => $status,
+            'client_signed_at' => $request->action === 'approved' ? now() : null,
+        ]);
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'action' => 'contract.client_' . $request->action,
+            'ip_address' => $request->ip(),
+        ]);
+
+        if ($request->action === 'approved') {
+            event(new ContractClientApproved($contract));
+        }
+
+        return response()->json(['contract' => $contract->fresh()]);
+    }
+
+    public function companyApprove(Request $request, Contract $contract): JsonResponse
+    {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['message' => 'غير مصرح بهذا الإجراء'], 403);
+        }
+
+        $request->validate([
+            'signature' => 'nullable|string',
+        ]);
+
+        $contract->update([
+            'status' => 'company_approved',
+            'company_signed_at' => now(),
+            'company_signature_data' => $request->signature ?? $request->user()->name,
+            'company_signature_type' => $request->signature && (str_starts_with($request->signature, '/storage/') || str_starts_with($request->signature, 'http')) ? 'image' : 'text',
+        ]);
+
+        $workspace = $contract->workspace;
+
+        // Activate workspace if already fully paid
+        if ($workspace->payments()->where('status', 'approved')->exists()) {
+            $workspace->update(['status' => 'active', 'activated_at' => now()]);
+        }
+
+        event(new ContractCompanyApproved($contract));
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.company_approved',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->fresh()->load('workspace.payments')]);
+    }
+
+    public function complete(Request $request, Contract $contract): JsonResponse
+    {
+        $contract->update(['status' => 'completed']);
+
+        event(new ContractCompleted($contract));
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.completed',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->fresh()]);
+    }
+
+    public function requiredDocuments(Request $request, Contract $contract): JsonResponse
+    {
+        $docs = $contract->requiredDocuments()->with('files')->get();
+        return response()->json(['required_documents' => $docs]);
+    }
+
+    public function files(Request $request, Contract $contract): JsonResponse
+    {
+        $files = $contract->workspace->files()->where('contract_id', $contract->id)
+            ->with('documentDefinition', 'reviewer', 'contractRequiredDocument')
+            ->latest()->get();
+        return response()->json(['files' => $files]);
+    }
+
+    public function archive(Request $request, Contract $contract): JsonResponse
+    {
+        if ($contract->workspace->payments()->where('status', 'approved')->exists()) {
+            return response()->json(['message' => 'لا يمكن أرشفة العقد بعد الموافقة على المدفوعات'], 422);
+        }
+        $contract->update(['status' => 'archived', 'archived_at' => now()]);
+
+        AuditLog::create([
+            'auditable_type' => Contract::class,
+            'auditable_id' => $contract->id,
+            'user_id' => $request->user()->id,
+            'action' => 'contract.archived',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['contract' => $contract->fresh()]);
+    }
+
+    public function addClause(Request $request, Contract $contract): JsonResponse
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'type' => 'in:fixed,optional,custom',
+        ]);
+
+        $clause = $contract->clauses()->create([
+            'content' => $request->content,
+            'type' => $request->type ?? 'custom',
+            'sort_order' => $contract->clauses()->count(),
+        ]);
+
+        return response()->json(['clause' => $clause], 201);
+    }
+
+    public function updateClause(Request $request, Contract $contract, ContractClause $clause): JsonResponse
+    {
+        $request->validate([
+            'content' => 'required|string',
+            'type' => 'in:fixed,optional,custom',
+            'sort_order' => 'integer|min:0',
+        ]);
+
+        $clause->update($request->only(['content', 'type', 'sort_order']));
+
+        return response()->json(['clause' => $clause->fresh()]);
+    }
+
+    public function destroyClause(Request $request, Contract $contract, ContractClause $clause): JsonResponse
+    {
+        $clause->delete();
+
+        return response()->json(['message' => 'تم حذف البند']);
+    }
+}

@@ -1,0 +1,68 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import api from '@/lib/api';
+
+export default function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unread, setUnread] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const load = () => {
+    api.get('/notifications').then(({ data }) => {
+      setNotifications(data.notifications || []);
+      setUnread(data.unread_count || 0);
+    }).catch(() => {});
+  };
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30000);
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => { clearInterval(interval); document.removeEventListener('mousedown', close); };
+  }, []);
+
+  const markRead = (id: string) => {
+    api.post(`/notifications/${id}/read`).then(() => { load(); }).catch(() => {});
+  };
+
+  const getHref = (n: any) => {
+    const d = n.data;
+    if (d?.contract_id) return `/dashboard/clients/${d.client_id || d.workspace_id}`;
+    return '#';
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(!open)} className="relative p-2 text-zinc-600 hover:text-zinc-900 transition">
+        <span className="text-lg">🔔</span>
+        {unread > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">{unread}</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border z-50 max-h-96 overflow-y-auto">
+          <div className="p-3 border-b flex justify-between items-center">
+            <h3 className="text-sm font-bold">الإشعارات</h3>
+            <button onClick={() => { notifications.forEach((n) => { if (!n.read_at) markRead(n.id); }); }} className="text-xs text-blue-600 hover:underline">تحديد الكل كمقروء</button>
+          </div>
+          {notifications.length === 0 ? (
+            <p className="text-xs text-zinc-400 p-4 text-center">لا توجد إشعارات</p>
+          ) : (
+            notifications.map((n) => (
+              <a key={n.id} href={getHref(n)} onClick={() => { if (!n.read_at) markRead(n.id); }}
+                className={`block p-3 border-b last:border-0 hover:bg-zinc-50 transition ${n.read_at ? '' : 'bg-blue-50'}`}>
+                <p className="text-xs font-medium">{n.data?.title || ''}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">{n.data?.message || ''}</p>
+                <p className="text-[10px] text-zinc-400 mt-1">{new Date(n.created_at).toLocaleDateString('ar-SA')}</p>
+              </a>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

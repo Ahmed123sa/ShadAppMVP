@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+#[Fillable(['name', 'email', 'password', 'role', 'super_admin_id'])]
+#[Hidden(['password', 'remember_token'])]
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasApiTokens, HasFactory, Notifiable;
+
+    const ROLE_SUPER_ADMIN = 'super_admin';
+    const ROLE_ACCOUNT_MANAGER = 'account_manager';
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    public function isAccountManager(): bool
+    {
+        return $this->role === self::ROLE_ACCOUNT_MANAGER;
+    }
+
+    public function managedAccounts(): HasMany
+    {
+        return $this->hasMany(User::class, 'super_admin_id');
+    }
+
+    public function managedClients(): HasMany
+    {
+        return $this->hasMany(Client::class, 'manager_id');
+    }
+}
