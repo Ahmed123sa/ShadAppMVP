@@ -38,8 +38,6 @@ class ApprovalPdfService
         $path = 'approval-certificates/' . $filename;
         Storage::disk('public')->put($path, $mpdf->Output('', 'S'));
 
-        Storage::url($path);
-
-        return $path;
+        return Storage::url($path);
     }
 }
