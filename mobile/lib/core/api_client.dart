@@ -1,10 +1,31 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:8000/api';
+  String baseUrl = 'http://localhost:8000/api';
+  final Duration _timeout = const Duration(seconds: 30);
   String? _token;
+  int? userId;
+  int? workspaceId;
+  int get workspaceIdSafe => workspaceId ?? 1;
+  String? role;
+  String? userName;
+
+  static final ApiClient _instance = ApiClient._();
+  ApiClient._();
+  factory ApiClient() => _instance;
+
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('token');
+    baseUrl = prefs.getString('base_url') ?? baseUrl;
+    role = prefs.getString('role');
+    userId = prefs.getInt('user_id');
+    workspaceId = prefs.getInt('workspace_id');
+    userName = prefs.getString('user_name');
+  }
 
   Future<void> setToken(String token) async {
     _token = token;
@@ -21,38 +42,152 @@ class ApiClient {
 
   Future<void> clearToken() async {
     _token = null;
+    userId = null;
+    workspaceId = null;
+    role = null;
+    userName = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    await prefs.remove('role');
+    await prefs.remove('user_id');
+    await prefs.remove('workspace_id');
+    await prefs.remove('user_name');
   }
 
-  Future<Map<String, String>> _headers() async {
+  Future<void> setRole(String value) async {
+    role = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('role', value);
+  }
+
+  Future<String?> getRole() async {
+    if (role != null) return role;
+    final prefs = await SharedPreferences.getInstance();
+    role = prefs.getString('role');
+    return role;
+  }
+
+  Future<void> setUserData({int? id, String? name, int? workspace}) async {
+    if (id != null) userId = id;
+    if (name != null) userName = name;
+    if (workspace != null) workspaceId = workspace;
+    final prefs = await SharedPreferences.getInstance();
+    if (id != null) await prefs.setInt('user_id', id);
+    if (name != null) await prefs.setString('user_name', name);
+    if (workspace != null) await prefs.setInt('workspace_id', workspace);
+  }
+
+  Future<void> setBaseUrl(String url) async {
+    baseUrl = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('base_url', url);
+  }
+
+  Future<Map<String, String>> _headers({bool multipart = false}) async {
     final headers = <String, String>{
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+    if (!multipart) headers['Content-Type'] = 'application/json';
     final token = await getToken();
     if (token != null) headers['Authorization'] = 'Bearer $token';
     return headers;
   }
 
   Future<Map<String, dynamic>> get(String path) async {
-    final response = await http.get(Uri.parse('$baseUrl$path'), headers: await _headers());
+    final response = await http.get(Uri.parse('$baseUrl$path'), headers: await _headers()).timeout(_timeout);
     return _handle(response);
   }
 
   Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) async {
-    final response = await http.post(Uri.parse('$baseUrl$path'), headers: await _headers(), body: body != null ? jsonEncode(body) : null);
+    final response = await http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: await _headers(),
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(_timeout);
     return _handle(response);
   }
 
   Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
-    final response = await http.put(Uri.parse('$baseUrl$path'), headers: await _headers(), body: jsonEncode(body));
+    final response = await http.put(
+      Uri.parse('$baseUrl$path'),
+      headers: await _headers(),
+      body: jsonEncode(body),
+    ).timeout(_timeout);
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> patch(String path, [Map<String, dynamic>? body]) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl$path'),
+      headers: await _headers(),
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(_timeout);
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> delete(String path) async {
+    final response = await http.delete(Uri.parse('$baseUrl$path'), headers: await _headers()).timeout(_timeout);
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> multipartPost(String path, Map<String, dynamic> fields, {File? file, String fileField = 'file'}) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    request.headers.addAll(await _headers(multipart: true));
+    fields.forEach((key, value) => request.fields[key] = value.toString());
+    if (file != null) request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
+    final streamed = await request.send().timeout(_timeout);
+    final response = await http.Response.fromStream(streamed);
+    return _handle(response);
+  }
+
+  Future<Map<String, dynamic>> multipartPostMultiple(String path, Map<String, dynamic> fields, {required List<File> files, String fileField = 'files[]'}) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    request.headers.addAll(await _headers(multipart: true));
+    fields.forEach((key, value) => request.fields[key] = value.toString());
+    for (final file in files) {
+      request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
+    }
+    final streamed = await request.send().timeout(_timeout);
+    final response = await http.Response.fromStream(streamed);
     return _handle(response);
   }
 
   Map<String, dynamic> _handle(http.Response response) {
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode >= 400) throw Exception(data['message'] ?? 'Request failed');
+    final data = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
+    if (response.statusCode == 401) {
+      clearToken();
+      throw AuthException(data['message'] ?? 'انتهت الجلسة');
+    }
+    if (response.statusCode == 422) {
+      final errors = data['errors'] as Map<String, dynamic>?;
+      final firstError = errors?.values.firstOrNull;
+      final msg = firstError is List ? firstError.first.toString() : (data['message'] ?? 'بيانات غير صحيحة');
+      throw ValidationException(msg);
+    }
+    if (response.statusCode >= 400) {
+      throw ServerException(data['message'] ?? 'حدث خطأ في الخادم');
+    }
     return data;
   }
+}
+
+class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+  @override
+  String toString() => message;
+}
+
+class ValidationException implements Exception {
+  final String message;
+  ValidationException(this.message);
+  @override
+  String toString() => message;
+}
+
+class ServerException implements Exception {
+  final String message;
+  ServerException(this.message);
+  @override
+  String toString() => message;
 }

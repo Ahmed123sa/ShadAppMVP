@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function ApprovalsTab({ wsId }: { wsId: number }) {
+  const isSA = getUser()?.role === 'super_admin';
   const [approvals, setApprovals] = useState<any[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,30 +38,32 @@ export default function ApprovalsTab({ wsId }: { wsId: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
-        <h3 className="font-medium text-sm text-zinc-700">طلب موافقة جديد</h3>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان طلب الموافقة *" className="border rounded-lg px-3 py-2 text-sm w-full" />
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="الوصف (اختياري)" className="border rounded-lg px-3 py-2 text-sm w-full" rows={2} />
+      {!isSA && (
+        <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
+          <h3 className="font-medium text-sm text-zinc-700">طلب موافقة جديد</h3>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان طلب الموافقة *" className="border rounded-lg px-3 py-2 text-sm w-full" />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="الوصف (اختياري)" className="border rounded-lg px-3 py-2 text-sm w-full" rows={2} />
 
-        <div className="flex items-center gap-2">
-          <input type="file" ref={fileRef} multiple className="hidden" onChange={(e) => { if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]); }} />
-          <button onClick={() => fileRef.current?.click()} className="text-sm text-blue-600 hover:underline">+ إرفاق ملفات</button>
-          {files.length > 0 && (
-            <div className="flex items-center gap-1">
-              {files.map((f, i) => (
-                <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded flex items-center gap-1">
-                  {f.name}
-                  <button onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700">&times;</button>
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <input type="file" ref={fileRef} multiple className="hidden" onChange={(e) => { if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]); }} />
+            <button onClick={() => fileRef.current?.click()} className="text-sm text-blue-600 hover:underline">+ إرفاق ملفات</button>
+            {files.length > 0 && (
+              <div className="flex items-center gap-1">
+                {files.map((f, i) => (
+                  <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded flex items-center gap-1">
+                    {f.name}
+                    <button onClick={() => removeFile(i)} className="text-red-500 hover:text-red-700">&times;</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button onClick={sendApproval} disabled={sending || !title} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+            {sending ? 'جاري الإرسال...' : 'إرسال طلب موافقة'}
+          </button>
         </div>
-
-        <button onClick={sendApproval} disabled={sending || !title} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-          {sending ? 'جاري الإرسال...' : 'إرسال طلب موافقة'}
-        </button>
-      </div>
+      )}
 
       {approvals.length === 0 ? <EmptyState message="لا توجد طلبات موافقة" /> : null}
       {approvals.map((a) => {

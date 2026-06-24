@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import ContractDetailModal from './ContractDetailModal';
 
-export default function ClientContracts({ wsId }: { wsId: number }) {
+export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number; onGoToPayments?: () => void }) {
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,11 +65,19 @@ export default function ClientContracts({ wsId }: { wsId: number }) {
               </>
             )}
             {c.status === 'company_approved' && (
-              <p className="text-xs text-emerald-600 mt-1">✅ تم اعتماد العقد من الشركة</p>
-            )}
-            {c.status === 'company_approved' && c.pdf_url && (
-              <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-emerald-600 hover:underline">📄 تحميل العقد النهائي</a>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-emerald-600">✅ تم اعتماد العقد من الشركة</p>
+                {c.pdf_url && (
+                  <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-emerald-600 hover:underline block">📄 تحميل العقد النهائي</a>
+                )}
+                {onGoToPayments && (
+                  <button onClick={onGoToPayments}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 mt-1">
+                    💳 انتقال إلى الدفع
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

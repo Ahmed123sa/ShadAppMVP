@@ -111,8 +111,9 @@ export default function ClientWorkspace() {
 }
 
 function TabContent({ tab, wsId, client, onClientRefresh }: { tab: Tab; wsId: number; client: Client; onClientRefresh?: () => void }) {
+  const wsActive = client.workspace?.status === 'active';
   switch (tab) {
-    case 'المحادثة': return <ChatTab wsId={wsId} />;
+    case 'المحادثة': return <ChatTab wsId={wsId} wsActive={wsActive} />;
     case 'الملفات': return <FilesTab wsId={wsId} />;
     case 'العقود': return <ContractsTab wsId={wsId} />;
     case 'المدفوعات': return <PaymentsTab wsId={wsId} client={client} onWorkspaceUpdate={onClientRefresh} />;

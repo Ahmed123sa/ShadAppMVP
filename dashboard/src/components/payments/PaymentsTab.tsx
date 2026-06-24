@@ -11,7 +11,7 @@ export default function PaymentsTab({ wsId, client, onWorkspaceUpdate }: { wsId:
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const user = getUser();
-  const canReview = user?.role === 'super_admin';
+  const canReview = user?.role === 'super_admin' || user?.role === 'account_manager';
 
   useEffect(() => {
     const load = () => api.get(`/workspaces/${wsId}/payments`).then(({ data }) => {
@@ -27,8 +27,8 @@ export default function PaymentsTab({ wsId, client, onWorkspaceUpdate }: { wsId:
     instapay: 'Instapay', vodafone_cash: 'فودافون كاش', mobile_wallet: 'محفظة موبايل',
   };
 
-  const approve = async (pid: number) => {
-    const { data } = await api.post(`/payments/${pid}/review`, { action: 'approved' }).catch(() => ({ data: null }));
+  const reviewPayment = async (pid: number, action: string) => {
+    const { data } = await api.post(`/payments/${pid}/review`, { action }).catch(() => ({ data: null }));
     if (data?.payment) {
       setPayments((prev) => prev.map((p) => p.id === pid ? data.payment : p));
       if (data?.workspace && onWorkspaceUpdate) onWorkspaceUpdate(data.workspace);
@@ -53,7 +53,10 @@ export default function PaymentsTab({ wsId, client, onWorkspaceUpdate }: { wsId:
               {p.status === 'approved' ? 'مقبول' : p.status === 'rejected' ? 'مرفوض' : 'معلق'}
             </span>
             {p.status === 'pending' && canReview && (
-              <button onClick={() => approve(p.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">قبول الدفع</button>
+              <div className="flex gap-1">
+                <button onClick={() => reviewPayment(p.id, 'approved')} className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700">قبول</button>
+                <button onClick={() => reviewPayment(p.id, 'rejected')} className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700">رفض</button>
+              </div>
             )}
           </div>
         </div>

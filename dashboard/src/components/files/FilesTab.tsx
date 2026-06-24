@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function FilesTab({ wsId }: { wsId: number }) {
+  const isSA = getUser()?.role === 'super_admin';
   const [files, setFiles] = useState<any[]>([]);
   const [definitions, setDefinitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,15 +54,17 @@ export default function FilesTab({ wsId }: { wsId: number }) {
         </div>
       )}
 
-      <div className="flex gap-2 items-center">
-        <select value={uploadDef} onChange={(e) => setUploadDef(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
-          <option value="">بدون تصنيف</option>
-          {definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <label className="inline-flex items-center gap-1.5 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
-          <input type="file" className="hidden" onChange={upload} />+ رفع ملف
-        </label>
-      </div>
+      {!isSA && (
+        <div className="flex gap-2 items-center">
+          <select value={uploadDef} onChange={(e) => setUploadDef(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+            <option value="">بدون تصنيف</option>
+            {definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <label className="inline-flex items-center gap-1.5 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
+            <input type="file" className="hidden" onChange={upload} />+ رفع ملف
+          </label>
+        </div>
+      )}
 
       {files.length === 0 ? <EmptyState message="لا توجد ملفات" /> : null}
       <div className="space-y-2">
@@ -79,7 +83,7 @@ export default function FilesTab({ wsId }: { wsId: number }) {
               <span className={`px-2 py-0.5 rounded-full text-xs ${f.status === 'approved' ? 'bg-green-100 text-green-700' : f.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                 {f.status === 'approved' ? 'مقبول' : f.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
               </span>
-              {f.status === 'pending' && (
+              {!isSA && f.status === 'pending' && (
                 <>
                   <button onClick={() => reviewFile(f.id, 'approved')} className="text-xs text-green-600 hover:underline">قبول</button>
                   <button onClick={() => { const r = prompt('سبب الرفض:'); if (r) reviewFile(f.id, 'rejected', r); }} className="text-xs text-red-600 hover:underline">رفض</button>

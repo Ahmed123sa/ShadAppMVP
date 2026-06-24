@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import ChatContractCard from '@/components/chat/ChatContractCard';
 import ContractBuilder from '@/components/chat/ContractBuilder';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-export default function ChatTab({ wsId }: { wsId: number }) {
+export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: boolean }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [text, setText] = useState('');
@@ -60,6 +61,39 @@ export default function ChatTab({ wsId }: { wsId: number }) {
 
   if (loading) return <LoadingSkeleton message="جاري تحميل المحادثة..." />;
 
+  const user = getUser();
+  const isSA = user?.role === 'super_admin';
+  const canChat = wsActive !== false && !isSA;
+
+  if (!canChat) {
+    return (
+      <div className="text-center py-10 space-y-3">
+        <span className="text-4xl block">{!wsActive ? '🔒' : '👁️'}</span>
+        <p className="text-zinc-500 text-sm">
+          {!wsActive ? 'المحادثة غير متاحة — في انتظار اكتمال الدفع وتفعيل مساحة العمل' : 'عرض المحادثة فقط'}
+        </p>
+        <div className="h-72 overflow-y-auto space-y-3 border rounded-lg p-3 bg-zinc-50">
+          {contracts.length > 0 && contracts.map((c) => (
+            <ChatContractCard key={`contract-${c.id}`} contract={c} onAction={() => {}} />
+          ))}
+          {messages.map((m) => {
+            const isClient = m.sender_type === 'App\\Models\\Client';
+            return (
+            <div key={m.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-xs">
+                <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
+                  <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
+                  {m.message}
+                </div>
+              </div>
+            </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   const actionResultLabel: Record<string, string> = {
     approved: '✅ تمت الموافقة',
     rejected: '❌ تم الرفض',
@@ -90,7 +124,7 @@ export default function ChatTab({ wsId }: { wsId: number }) {
           <div key={m.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-xs">
               <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
-                <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : (m.sender?.name || 'المدير')}</p>
+                <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
                 {m.type === 'file' && m.file_url && (
                   <div className="mb-1">
                     {m.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (

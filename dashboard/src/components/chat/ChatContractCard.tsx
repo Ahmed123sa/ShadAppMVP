@@ -48,17 +48,14 @@ export default function ChatContractCard({ contract, onAction }: { contract: Con
           </div>
         )}
       </div>
-      {onAction && (
+      {onAction && contract.status === 'draft' && (
         <div className="px-4 pb-3 flex gap-2 flex-wrap">
-          {contract.status === 'draft' && (
-            <button onClick={() => onAction(contract.id, 'send')} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700">إرسال للعميل</button>
-          )}
-          {contract.status === 'company_approved' && (
-            <button onClick={() => onAction(contract.id, 'complete')} className="text-xs bg-emerald-600 text-white px-3 py-1 rounded-lg hover:bg-emerald-700">إكمال العقد</button>
-          )}
-          {(contract.status === 'completed' || contract.status === 'company_approved') && (
-            <button onClick={() => onAction(contract.id, 'archive')} className="text-xs bg-zinc-500 text-white px-3 py-1 rounded-lg hover:bg-zinc-600">أرشفة</button>
-          )}
+          <button onClick={() => onAction(contract.id, 'send')} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700">إرسال للعميل</button>
+        </div>
+      )}
+      {onAction && contract.status === 'company_approved' && (
+        <div className="px-4 pb-3 flex gap-2 flex-wrap">
+          <button onClick={() => onAction(contract.id, 'archive')} className="text-xs bg-zinc-500 text-white px-3 py-1 rounded-lg hover:bg-zinc-600">أرشفة</button>
         </div>
       )}
     </div>

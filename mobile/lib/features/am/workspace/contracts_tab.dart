@@ -1,0 +1,267 @@
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/api_client.dart';
+import '../../../core/theme.dart';
+import 'package:shadapp_client/generated/app_localizations.dart';
+import '../../../core/widgets/loading_state.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
+import '../../../core/widgets/status_badge.dart';
+import '../widgets/contract_builder.dart';
+
+class ContractsTab extends StatefulWidget {
+  const ContractsTab({super.key});
+
+  @override
+  State<ContractsTab> createState() => _ContractsTabState();
+}
+
+class _ContractsTabState extends State<ContractsTab> {
+  final _api = ApiClient();
+  List<dynamic> _contracts = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final wsId = _api.workspaceId;
+    if (wsId == null) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final data = await _api.get('/workspaces/$wsId/contracts');
+      _contracts = data['contracts'] as List<dynamic>;
+    } on ServerException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      if (mounted) _error = AppLocalizations.of(context)!.contractsLoadFailed;
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _action(int id, String action, {bool destructive = false}) async {
+    if (destructive) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(action == 'archive' ? AppLocalizations.of(context)!.archive : AppLocalizations.of(context)!.completeComplete),
+          content: const Text('هل أنت متأكد من هذا الإجراء؟'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('تأكيد')),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+    try {
+      await _api.post('/contracts/$id/$action');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.contractUpdated)));
+        _load();
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred)));
+    }
+  }
+
+  Future<void> _companyApproveWithSignature(Map<String, dynamic> contract) async {
+    final signatureController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.companyApprove),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('اعتماد عقد: ${contract['title']}', style: ShadTypography.cardBody),
+            const SizedBox(height: 16),
+            TextField(
+              controller: signatureController,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.companySignature,
+                hintText: AppLocalizations.of(context)!.signatureHint,
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final sig = signatureController.text.trim();
+              if (sig.isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.enterSignature)));
+                return;
+              }
+              Navigator.pop(ctx, sig);
+            },
+            child: Text(AppLocalizations.of(context)!.confirm),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    try {
+      await _api.post('/contracts/${contract['id']}/company-approve', {'signature': result});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.contractUpdated)));
+        _load();
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred)));
+    }
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '—';
+    final s = date.toString();
+    if (s.isEmpty) return '—';
+    try {
+      final parsed = DateTime.parse(s);
+      return '${parsed.year}/${parsed.month}/${parsed.day}';
+    } catch (_) {
+      return s.split('T')[0];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSA = _api.role == 'super_admin';
+    final Map<String, List<String>> actionsForStatus = {
+      if (!isSA) 'draft': ['send'],
+      if (!isSA) 'edit_requested': ['send'],
+      if (isSA) 'client_approved': ['company-approve'],
+      if (isSA) 'company_approved': ['complete'],
+      if (!isSA) 'company_approved': ['archive'],
+    };
+
+    if (_loading) return const LoadingState(itemCount: 3);
+    if (_error != null) return ErrorState(message: _error!, onRetry: _load);
+
+    return Stack(children: [
+      if (_contracts.isEmpty)
+        Center(child: EmptyState(icon: Icons.description_outlined, title: AppLocalizations.of(context)!.noContracts, subtitle: AppLocalizations.of(context)!.noContractsSubtitle))
+      else
+        RefreshIndicator(
+          onRefresh: _load,
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            itemCount: _contracts.length,
+            itemBuilder: (_, i) {
+              final c = _contracts[i];
+              final clauses = c['clauses'] as List<dynamic>? ?? [];
+              final rawActions = actionsForStatus[c['status']] ?? [];
+              final actions = rawActions.where((a) {
+                if (isSA) return a == 'company-approve' || a == 'complete';
+                return a != 'company-approve';
+              }).toList();
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(c['title'] ?? '', style: ShadTypography.cardTitle),
+                          const SizedBox(height: 4),
+                          Text('${c['value'] ?? 0} ${c['currency'] as String? ?? 'SAR'} • ${clauses.length} بنود', style: ShadTypography.cardBody.copyWith(color: ShadColors.textSecondary)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_formatDate(c['start_date'])} - ${_formatDate(c['end_date'])}',
+                            style: ShadTypography.cardBody.copyWith(color: ShadColors.textDisabled, fontSize: 11),
+                          ),
+                          if ((c['required_documents'] as List?)?.isNotEmpty == true)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text('${(c['required_documents'] as List).length} مستندات مطلوبة', style: ShadTypography.cardBody.copyWith(color: ShadColors.gold, fontSize: 11)),
+                            ),
+                        ])),
+                        StatusBadge(status: c['status'] ?? ''),
+                      ]),
+                      if (['client_approved', 'company_approved', 'completed'].contains(c['status']) && c['pdf_url'] != null) ...[
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final uri = Uri.tryParse(c['pdf_url'] as String);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.picture_as_pdf, size: 16, color: ShadColors.error),
+                            const SizedBox(width: 4),
+                            Text(
+                              c['status'] == 'client_approved' ? '📄 عرض العقد الموقع' : '📄 تحميل العقد النهائي',
+                              style: ShadTypography.cardBody.copyWith(color: ShadColors.primary, decoration: TextDecoration.underline),
+                            ),
+                          ]),
+                        ),
+                      ],
+                      if (clauses.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        ExpansionTile(
+                          title: Text('${AppLocalizations.of(context)!.viewClauses} (${clauses.length})', style: ShadTypography.cardBody.copyWith(color: ShadColors.primary)),
+                          childrenPadding: EdgeInsets.zero,
+                          children: clauses.map<Widget>((cl) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Icon(Icons.circle, size: 6, color: ShadColors.textDisabled),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(cl['content'] ?? '', style: ShadTypography.cardBody)),
+                            ]),
+                          )).toList(),
+                        ),
+                      ],
+                      if (actions.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(spacing: 8, children: actions.map((a) {
+                          final isDestructive = a == 'archive' || a == 'complete';
+                          final isPrimary = a == 'company-approve' || a == 'send';
+                          if (isDestructive) {
+                            return OutlinedButton(
+                              onPressed: () => _action(c['id'], a, destructive: true),
+                              style: OutlinedButton.styleFrom(foregroundColor: ShadColors.textSecondary, side: const BorderSide(color: ShadColors.textDisabled)),
+                              child: Text(a == 'archive' ? AppLocalizations.of(context)!.archive : AppLocalizations.of(context)!.completeComplete),
+                            );
+                          }
+                          return ElevatedButton(
+                            onPressed: a == 'company-approve' ? () => _companyApproveWithSignature(c) : () => _action(c['id'], a),
+                            style: isPrimary ? ElevatedButton.styleFrom(backgroundColor: ShadColors.success) : null,
+                            child: Text(a == 'send' ? AppLocalizations.of(context)!.send : a == 'company-approve' ? AppLocalizations.of(context)!.companyApprove : a == 'complete' ? AppLocalizations.of(context)!.completeComplete : a),
+                          );
+                        }).toList()),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      if (!isSA)
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: ElevatedButton.icon(
+            onPressed: () => ContractBuilder.show(context, onCreated: _load),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('إنشاء عقد جديد'),
+          ),
+        ),
+    ]);
+  }
+}

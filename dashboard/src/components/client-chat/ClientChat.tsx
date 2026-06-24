@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-export default function ClientChat({ wsId }: { wsId: number }) {
+export default function ClientChat({ wsId, wsActive }: { wsId: number; wsActive?: boolean }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -58,6 +58,15 @@ export default function ClientChat({ wsId }: { wsId: number }) {
   if (loading) return <LoadingSkeleton message="جاري تحميل المحادثة..." />;
   if (error) return <p className="text-sm text-red-500 text-center py-8">{error}</p>;
 
+  if (!wsActive) {
+    return (
+      <div className="text-center py-10">
+        <span className="text-4xl block mb-3">🔒</span>
+        <p className="text-zinc-500 text-sm">المحادثة غير متاحة — في انتظار تفعيل مساحة العمل بعد اكتمال الدفع</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="h-72 overflow-y-auto space-y-3 border rounded-lg p-3 bg-zinc-50">
@@ -72,7 +81,7 @@ export default function ClientChat({ wsId }: { wsId: number }) {
               <div className="max-w-xs">
                 <div className={`px-3 py-2 rounded-lg text-sm ${sentByClient ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-800'}`}>
                   <p className={`text-xs mb-0.5 ${sentByClient ? 'text-blue-200' : 'text-zinc-500'}`}>
-                    {sentByClient ? 'أنت' : (m.sender?.name || 'المدير')}
+                    {sentByClient ? 'أنت' : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}
                   </p>
                   {m.type === 'file' && m.file_url && (
                     <div className="mb-1">

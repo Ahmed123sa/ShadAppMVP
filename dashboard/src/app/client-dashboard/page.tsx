@@ -146,7 +146,13 @@ export default function ClientDashboardPage() {
       </header>
 
       <main className="max-w-5xl mx-auto p-6 space-y-6">
-        <StagesStepper client={client} workspace={workspace} />
+        <StagesStepper client={client} workspace={workspace} onStageClick={(tab) => setActiveTab(tab as Tab)} />
+
+        {workspace?.payments?.some((p: any) => p.status === 'approved') && !wsActive && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+            <p className="text-emerald-700 font-medium">✅ تم قبول الدفع — سيتم تفعيل مساحة العمل فور اكتمال الإجراءات</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl shadow-sm border p-4 text-center">
@@ -179,7 +185,7 @@ export default function ClientDashboardPage() {
             ))}
           </div>
           <div className="p-5">
-            <TabContent tab={activeTab} wsId={wsId} clientId={session.id} clientData={client} />
+                <TabContent tab={activeTab} wsId={wsId} clientId={session.id} clientData={client} wsActive={wsActive} onGoToPayments={() => setActiveTab('المدفوعات')} />
           </div>
         </div>
       </main>
@@ -187,12 +193,12 @@ export default function ClientDashboardPage() {
   );
 }
 
-function TabContent({ tab, wsId, clientId, clientData }: { tab: Tab; wsId: number; clientId: number; clientData: any }) {
+function TabContent({ tab, wsId, clientId, clientData, wsActive, onGoToPayments }: { tab: Tab; wsId: number; clientId: number; clientData: any; wsActive?: boolean; onGoToPayments?: () => void }) {
   switch (tab) {
-    case 'العقود': return <ClientContracts wsId={wsId} />;
+    case 'العقود': return <ClientContracts wsId={wsId} onGoToPayments={onGoToPayments} />;
     case 'المدفوعات': return <ClientPayments wsId={wsId} />;
     case 'الموافقات': return <ClientApprovals wsId={wsId} clientId={clientId} />;
-    case 'الشات': return <ClientChat wsId={wsId} />;
+    case 'الشات': return <ClientChat wsId={wsId} wsActive={wsActive} />;
     case 'الملفات': return <ClientFiles wsId={wsId} />;
     case 'الاجتماعات': return <ClientMeetings wsId={wsId} />;
     case 'التوقيع': return <ClientSignature clientId={clientId} clientData={clientData} onSigned={() => {}} />;

@@ -1,58 +1,76 @@
 import 'package:flutter/material.dart';
-import 'features/auth/login_page.dart';
-import 'features/dashboard/dashboard_page.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
+import 'core/theme.dart';
 import 'core/api_client.dart';
+import 'core/router.dart';
+import 'core/locale_provider.dart';
+import 'package:shadapp_client/generated/app_localizations.dart';
 
-void main() {
-  runApp(const ShadApp());
-}
-
-class ShadApp extends StatelessWidget {
-  const ShadApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ShadApp',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.blue,
-        useMaterial3: true,
-        fontFamily: 'Cairo',
-      ),
-      home: const SplashScreen(),
-    );
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final api = ApiClient();
+  await api.init();
+  final token = await api.getToken();
+  final loggedIn = token != null;
+  String initialLocation;
+  if (!loggedIn) {
+    initialLocation = '/login';
+  } else {
+    final role = await api.getRole();
+    initialLocation = role == 'client' ? '/dashboard' : '/am/dashboard';
   }
+  final router = createRouter(api, initialLocation: initialLocation);
+  final localeProvider = LocaleProvider();
+  await localeProvider.init();
+  runApp(ShadApp(router: router, localeProvider: localeProvider));
 }
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class ShadApp extends StatefulWidget {
+  final GoRouter router;
+  final LocaleProvider localeProvider;
+
+  const ShadApp({super.key, required this.router, required this.localeProvider});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<ShadApp> createState() => _ShadAppState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  final _api = ApiClient();
-
+class _ShadAppState extends State<ShadApp> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    widget.localeProvider.addListener(_onLocaleChanged);
   }
 
-  Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 1));
-    final token = await _api.getToken();
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => token != null ? const DashboardPage() : const LoginPage()),
-    );
+  void _onLocaleChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.localeProvider.removeListener(_onLocaleChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return MaterialApp.router(
+      title: 'ShadApp',
+      debugShowCheckedModeBanner: false,
+      theme: shadTheme(),
+      locale: widget.localeProvider.locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ar'),
+        Locale('en'),
+      ],
+      routerConfig: widget.router,
+    );
   }
 }

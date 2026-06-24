@@ -8,6 +8,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 export default function ClientPayments({ wsId }: { wsId: number }) {
   const [payments, setPayments] = useState<any[]>([]);
   const [methods, setMethods] = useState<string[]>([]);
+  const [contractValue, setContractValue] = useState<number>(0);
+  const [contractTitle, setContractTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [amount, setAmount] = useState('');
@@ -19,6 +21,13 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
     const load = () => api.get(`/workspaces/${wsId}/payments`).then(({ data }) => {
       setPayments(data.payments || []);
       setMethods(data.available_methods || []);
+      // Find latest company_approved contract for suggested amount
+      if (!data.payments?.length) {
+        api.get(`/workspaces/${wsId}/contracts`).then(({ data: cData }) => {
+          const approved = (cData.contracts || []).find((c: any) => c.status === 'company_approved');
+          if (approved) { setContractValue(approved.value); setContractTitle(approved.title); setAmount(String(approved.value)); }
+        }).catch(() => {});
+      }
     }).catch(() => setError('فشل تحميل المدفوعات'));
     load().finally(() => setLoading(false));
     const interval = setInterval(load, 30000);
@@ -54,12 +63,21 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
 
   return (
     <div className="space-y-3">
-      {pendingPayment && (
+      {!pendingPayment && (contractTitle || payments.some(p => p.status === 'approved' && !p.contract_id)) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-sm text-amber-700 font-medium">💳 {contractTitle ? `عقد "${contractTitle}" معتمد — المبلغ المطلوب: ${contractValue} ر.س` : 'العقد معتمد, برجاء البدء في إجراءات الدفع'}</p>
+        </div>
+      )}
+      {(pendingPayment || contractTitle) && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
           <div className="flex items-start gap-3">
             <span className="text-2xl">💳</span>
             <div>
-              <p className="font-medium text-blue-800">مطلوب دفع مبلغ {pendingPayment.amount} ر.س</p>
+              {pendingPayment ? (
+                <p className="font-medium text-blue-800">مطلوب دفع مبلغ {pendingPayment.amount} ر.س</p>
+              ) : (
+                <p className="font-medium text-blue-800">إتمام الدفع للعقد "{contractTitle}"</p>
+              )}
               <p className="text-xs text-blue-600 mt-0.5">يرجى رفع إثبات الدفع بعد تحويل المبلغ</p>
             </div>
           </div>
@@ -87,11 +105,14 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
       )}
 
       {payments.length === 0 && !pendingPayment ? <EmptyState message="لا توجد مدفوعات" /> : null}
-      {payments.map((p) => (
+      {payments.map((p) => {
+        const linkedContract = p.contract;
+        return (
         <div key={p.id} className="border rounded-lg p-4 flex justify-between items-center">
           <div>
             <p className="font-medium">{p.amount} ر.س</p>
             <p className="text-xs text-zinc-400">{methodLabels[p.method_type] || p.method_type}</p>
+            {linkedContract && <p className="text-xs text-zinc-500 mt-0.5">📄 {linkedContract.title}</p>}
             {p.proof_file_url && (
               <a href={p.proof_file_url} target="_blank" rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:underline">📎 عرض الإثبات</a>
@@ -105,7 +126,8 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
             {p.status === 'approved' ? 'مقبول' : p.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
           </span>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -28,6 +28,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
   }, [wsId]);
 
   const user = getUser();
+  const isSA = user?.role === 'super_admin';
 
   const fixedTemplates = templates.filter((t: any) => t.type === 'fixed');
   const optionalTemplates = templates.filter((t: any) => t.type === 'optional');
@@ -68,10 +69,12 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
 
   if (loading) return <LoadingSkeleton />;
 
+  if (isSA && contracts.length === 0) return <EmptyState message="لا توجد عقود" />;
+
   return (
     <div className="space-y-3">
-      <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline">+ عقد جديد</button>
-      {showForm && (
+      {!isSA && <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline">+ عقد جديد</button>}
+      {!isSA && showForm && (
         <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="عنوان العقد" className="border rounded-lg px-3 py-2 text-sm w-full" />
           <div className="flex gap-2">
@@ -150,12 +153,12 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
             </div>
           )}
           <div className="mt-2 flex gap-2 flex-wrap">
-            {c.status === 'draft' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-blue-600 hover:underline">إرسال</button>}
-            {c.status === 'edit_requested' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-amber-600 hover:underline">إرسال بعد التعديل</button>}
+            {!isSA && c.status === 'draft' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-blue-600 hover:underline">إرسال</button>}
+            {!isSA && c.status === 'edit_requested' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-amber-600 hover:underline">إرسال بعد التعديل</button>}
             {c.status === 'client_approved' && (
               <>
                 {c.pdf_url && <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">📄 عرض العقد الموقع</a>}
-                {user?.role === 'super_admin' && (
+                {isSA && (
                   <button onClick={() => setApproveSig({ id: c.id, signature: '' })} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700">اعتماد الشركة</button>
                 )}
               </>
@@ -163,12 +166,11 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
             {c.status === 'company_approved' && (
               <>
                 {c.pdf_url && <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">📄 تحميل العقد النهائي</a>}
-                <button onClick={() => doAction(c.id, 'complete')} className="text-xs text-emerald-600 hover:underline">إكمال</button>
-                <button onClick={() => doAction(c.id, 'archive')} className="text-xs text-zinc-500 hover:underline">أرشفة</button>
+                {!isSA && <button onClick={() => doAction(c.id, 'archive')} className="text-xs text-zinc-500 hover:underline">أرشفة</button>}
               </>
             )}
             {c.status === 'completed' && (
-              <button onClick={() => doAction(c.id, 'archive')} className="text-xs text-zinc-500 hover:underline">أرشفة</button>
+              <>{c.pdf_url && <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">📄 تحميل العقد النهائي</a>}</>
             )}
           </div>
         </div>
