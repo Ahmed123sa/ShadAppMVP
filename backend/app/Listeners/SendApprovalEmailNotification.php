@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\ApprovalResponded;
 use App\Mail\ApprovalCertificateMail;
+use App\Notifications\ApprovalRespondedNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -29,6 +30,14 @@ class SendApprovalEmailNotification
                 Mail::to($client->email)->send(new ApprovalCertificateMail($approval));
             } catch (\Exception $e) {
                 Log::warning('Failed to send approval email to client: ' . $e->getMessage());
+            }
+        }
+
+        if ($requester) {
+            try {
+                $requester->notify(new ApprovalRespondedNotification($approval));
+            } catch (\Exception $e) {
+                Log::warning('Failed to send approval responded notification: ' . $e->getMessage());
             }
         }
     }

@@ -77,6 +77,15 @@ class ApiClient {
     if (workspace != null) await prefs.setInt('workspace_id', workspace);
   }
 
+  Future<void> registerFcmToken(String token, String deviceType) async {
+    try {
+      await post('/notifications/register-token', {
+        'token': token,
+        'device_type': deviceType,
+      });
+    } catch (_) {}
+  }
+
   String resolveFileUrl(String url) {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     final base = baseUrl.replaceFirst('/api', '');

@@ -13,6 +13,8 @@ use App\Mail\ContractCompletedMail;
 use App\Models\User;
 use App\Notifications\ContractClientApprovedNotification;
 use App\Notifications\ContractCompanyApprovedNotification;
+use App\Notifications\ContractSentNotification;
+use App\Notifications\ContractCompletedNotification;
 use App\Services\ContractPdfService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -39,6 +41,12 @@ class SendContractEmailNotification
             } catch (\Exception $e) {
                 Log::warning('Failed to send contract sent email to manager: ' . $e->getMessage());
             }
+        }
+
+        try {
+            $manager->notify(new ContractSentNotification($contract));
+        } catch (\Exception $e) {
+            Log::warning('Failed to send contract sent notification: ' . $e->getMessage());
         }
     }
 
@@ -117,6 +125,8 @@ class SendContractEmailNotification
         $client = $contract->workspace->client;
         $manager = $contract->creator;
 
+        $recipients = collect();
+
         if ($client->email) {
             try {
                 Mail::to($client->email)->send(new ContractCompletedMail($contract));
@@ -125,11 +135,30 @@ class SendContractEmailNotification
             }
         }
 
-        if ($manager->email) {
+        if ($manager && $manager->email) {
             try {
                 Mail::to($manager->email)->send(new ContractCompletedMail($contract));
             } catch (\Exception $e) {
                 Log::warning('Failed to send completed email to manager: ' . $e->getMessage());
+            }
+        }
+
+        if ($manager) {
+            $recipients->push($manager);
+        }
+
+        $admins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
+        foreach ($admins as $admin) {
+            if ($admin->id !== $manager?->id) {
+                $recipients->push($admin);
+            }
+        }
+
+        foreach ($recipients as $user) {
+            try {
+                $user->notify(new ContractCompletedNotification($contract));
+            } catch (\Exception $e) {
+                Log::warning('Failed to send contract completed notification: ' . $e->getMessage());
             }
         }
     }

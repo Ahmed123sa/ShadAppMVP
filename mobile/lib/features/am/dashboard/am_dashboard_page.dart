@@ -297,7 +297,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
         ),
         actions: [
           Stack(children: [
-            IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: _loadNotifs),
+            IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () => context.push('/notifications')),
             if (_unreadNotifs > 0)
               Positioned(
                 right: 6, top: 6,

@@ -7,7 +7,10 @@ use App\Models\ApprovalCertificate;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\ApprovalResponded;
+use App\Models\User;
+use App\Notifications\ApprovalRequestedNotification;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Str;
@@ -82,6 +85,25 @@ class ApprovalController extends Controller
             'metadata' => ['reference_no' => $approval->reference_no],
             'ip_address' => $request->ip(),
         ]);
+
+        $manager = $workspace->manager;
+        $admins = User::where('role', User::ROLE_SUPER_ADMIN)->get();
+        $notifyUsers = collect();
+        if ($manager) {
+            $notifyUsers->push($manager);
+        }
+        foreach ($admins as $admin) {
+            if ($admin->id !== $request->user()->id) {
+                $notifyUsers->push($admin);
+            }
+        }
+        foreach ($notifyUsers as $user) {
+            try {
+                $user->notify(new ApprovalRequestedNotification($approval));
+            } catch (\Exception $e) {
+                Log::warning('Failed to send approval requested notification: ' . $e->getMessage());
+            }
+        }
 
         return response()->json(['approval' => $approval->load('requester', 'files', 'chatMessage')], 201);
     }

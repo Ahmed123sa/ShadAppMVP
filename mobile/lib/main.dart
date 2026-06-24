@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -5,10 +6,14 @@ import 'core/theme.dart';
 import 'core/api_client.dart';
 import 'core/router.dart';
 import 'core/locale_provider.dart';
+import 'core/notification_service.dart';
 import 'package:shadapp_client/generated/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  final notificationService = NotificationService();
+  await notificationService.init();
   final api = ApiClient();
   await api.init();
   final token = await api.getToken();

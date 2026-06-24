@@ -28,12 +28,10 @@ class NotificationController extends Controller
         }
 
         MobileNotificationToken::updateOrCreate(
+            ['token' => $request->token],
             [
                 'tokenable_id' => $user->id,
                 'tokenable_type' => get_class($user),
-            ],
-            [
-                'token' => $request->token,
                 'device_type' => $request->device_type,
             ]
         );
@@ -79,6 +77,23 @@ class NotificationController extends Controller
         $notification = $user?->notifications()->where('id', $id)->first();
         if ($notification) {
             $notification->markAsRead();
+        }
+        return response()->json(['message' => 'done']);
+    }
+
+    public function markAllAsRead(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user?->unreadNotifications()->update(['read_at' => now()]);
+        return response()->json(['message' => 'done']);
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+        $notification = $user?->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->delete();
         }
         return response()->json(['message' => 'done']);
     }

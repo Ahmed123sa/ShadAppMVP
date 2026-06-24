@@ -17,18 +17,28 @@ class ContractCompanyApprovedNotification extends Notification
         $this->contract = $contract;
     }
 
-    public function via(object $notifiable): array
+    public function via($notifiable): array
     {
-        return ['database'];
+        return ['database', FcmChannel::class];
     }
 
-    public function toArray(object $notifiable): array
+    public function toDatabase($notifiable): array
     {
         return [
+            'type' => 'contract_company_approved',
             'contract_id' => $this->contract->id,
             'title' => 'تم اعتماد العقد نهائياً',
             'message' => 'تم اعتماد العقد ' . $this->contract->title . ' من الطرفين. يمكنك الآن الدفع.',
             'workspace_id' => $this->contract->workspace_id,
+        ];
+    }
+
+    public function toFcm($notifiable): array
+    {
+        return [
+            'title' => 'اعتماد نهائي للعقد',
+            'body' => 'تم اعتماد العقد ' . $this->contract->title . ' من الطرفين.',
+            'data' => ['type' => 'contract', 'id' => (string) $this->contract->id],
         ];
     }
 }
