@@ -5,6 +5,7 @@ namespace App\Domains\Client;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\Workspace;
 use App\Events\ClientCreated;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,11 @@ class ClientController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
+
         $clients = Client::with('workspace')
-            ->when($request->user()->isAccountManager(), fn($q) => $q->where('manager_id', $request->user()->id))
+            ->when($isAM, fn($q) => $q->where('manager_id', $user->id))
             ->latest()
             ->get();
 
@@ -34,10 +38,14 @@ class ClientController extends Controller
             'phone' => 'required|string|max:20',
             'contract_value' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            'country' => 'nullable|string|max:100',
+            'industry' => 'nullable|string|max:100',
+            'client_type' => 'nullable|string|in:business,individual',
+            'password' => 'nullable|string|min:6',
             'send_email' => 'boolean',
         ]);
 
-        $password = Str::random(12);
+        $password = $request->password ?? Str::random(12);
 
         $client = Client::create([
             'company_name' => $request->company_name,
@@ -47,7 +55,16 @@ class ClientController extends Controller
             'password' => Hash::make($password),
             'manager_id' => $request->user()->id,
             'contract_value' => $request->contract_value ?? 0,
+            'country' => $request->country,
+            'industry' => $request->industry,
+            'client_type' => $request->client_type ?? 'business',
             'notes' => $request->notes,
+        ]);
+
+        Workspace::create([
+            'client_id' => $client->id,
+            'manager_id' => $request->user()->id,
+            'status' => 'inactive',
         ]);
 
         if ($request->boolean('send_email')) {
@@ -71,7 +88,7 @@ class ClientController extends Controller
 
     public function show(Request $request, Client $client): JsonResponse
     {
-        $client->load('workspace', 'subUsers', 'payments');
+        $client->load('workspace.contracts', 'workspace.payments', 'subUsers', 'payments');
 
         return response()->json(['client' => $client]);
     }

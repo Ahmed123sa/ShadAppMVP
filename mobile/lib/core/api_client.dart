@@ -77,6 +77,12 @@ class ApiClient {
     if (workspace != null) await prefs.setInt('workspace_id', workspace);
   }
 
+  String resolveFileUrl(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    final base = baseUrl.replaceFirst('/api', '');
+    return '$base$url';
+  }
+
   Future<void> setBaseUrl(String url) async {
     baseUrl = url;
     final prefs = await SharedPreferences.getInstance();

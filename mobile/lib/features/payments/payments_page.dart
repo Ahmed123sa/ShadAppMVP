@@ -363,9 +363,13 @@ class _PaymentsPageState extends State<PaymentsPage> {
             if (p['proof_file_url'] != null)
               InkWell(
                 onTap: () async {
-                  final uri = Uri.tryParse(p['proof_file_url'] as String);
+                  final url = _api.resolveFileUrl(p['proof_file_url'] as String);
+                  final uri = Uri.tryParse(url);
+                  final messenger = ScaffoldMessenger.of(context);
                   if (uri != null && await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                   }
                 },
                 child: Text('📎 إثبات الدفع', style: TextStyle(fontSize: 10, color: ShadColors.primary, fontFamily: 'NotoSansArabic', decoration: TextDecoration.underline)),

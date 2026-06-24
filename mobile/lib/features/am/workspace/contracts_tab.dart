@@ -137,8 +137,8 @@ class _ContractsTabState extends State<ContractsTab> {
   Widget build(BuildContext context) {
     final isSA = _api.role == 'super_admin';
     final Map<String, List<String>> actionsForStatus = {
-      if (!isSA) 'draft': ['send'],
-      if (!isSA) 'edit_requested': ['send'],
+      'draft': ['send'],
+      'edit_requested': ['send'],
       if (isSA) 'client_approved': ['company-approve'],
       if (isSA) 'company_approved': ['complete'],
       if (!isSA) 'company_approved': ['archive'],
@@ -193,9 +193,13 @@ class _ContractsTabState extends State<ContractsTab> {
                         const SizedBox(height: 12),
                         InkWell(
                           onTap: () async {
-                            final uri = Uri.tryParse(c['pdf_url'] as String);
+                            final url = _api.resolveFileUrl(c['pdf_url'] as String);
+                            final uri = Uri.tryParse(url);
                             if (uri != null && await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                             }
                           },
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -251,17 +255,16 @@ class _ContractsTabState extends State<ContractsTab> {
             },
           ),
         ),
-      if (!isSA)
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: ElevatedButton.icon(
-            onPressed: () => ContractBuilder.show(context, onCreated: _load),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('إنشاء عقد جديد'),
-          ),
+      Positioned(
+        bottom: 16,
+        left: 16,
+        right: 16,
+        child: ElevatedButton.icon(
+          onPressed: () => ContractBuilder.show(context, onCreated: _load),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('إنشاء عقد جديد'),
         ),
+      ),
     ]);
   }
 }

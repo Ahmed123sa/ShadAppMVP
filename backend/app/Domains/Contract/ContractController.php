@@ -33,6 +33,7 @@ class ContractController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'value' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|max:10',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'clauses' => 'nullable|array',
@@ -46,6 +47,7 @@ class ContractController extends Controller
         $contract = $workspace->contracts()->create([
             'title' => $request->title,
             'value' => $request->value ?? 0,
+            'currency' => $request->currency ?? 'SAR',
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'status' => 'draft',
@@ -96,10 +98,9 @@ class ContractController extends Controller
             'value' => 'nullable|numeric|min:0',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'in:draft,sent,client_approved,client_rejected,edit_requested,company_approved,completed,archived',
         ]);
 
-        $contract->update($request->only(['title', 'value', 'start_date', 'end_date', 'status']));
+        $contract->update($request->only(['title', 'value', 'start_date', 'end_date']));
 
         AuditLog::create([
             'auditable_type' => Contract::class,
@@ -186,7 +187,7 @@ class ContractController extends Controller
             'company_signature_type' => $request->signature && (str_starts_with($request->signature, '/storage/') || str_starts_with($request->signature, 'http')) ? 'image' : 'text',
         ]);
 
-        $workspace = $contract->workspace;
+        $workspace = $contract->workspace->fresh();
 
         // Activate workspace if already fully paid
         if ($workspace->payments()->where('status', 'approved')->exists()) {

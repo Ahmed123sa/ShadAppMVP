@@ -237,7 +237,16 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: InkWell(
-                          onTap: () => launchUrl(Uri.parse(a['certificate']['pdf_url']), mode: LaunchMode.externalApplication),
+                          onTap: () async {
+                            final url = _api.resolveFileUrl(a['certificate']['pdf_url'] as String);
+                            final uri = Uri.tryParse(url);
+                            if (uri != null && await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                            }
+                          },
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             const Icon(Icons.picture_as_pdf, size: 16, color: ShadColors.error),
                             const SizedBox(width: 4),
@@ -271,7 +280,7 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
                           child: Text('تاريخ الرد: ${a['responded_at']}', style: ShadTypography.caption.copyWith(color: ShadColors.textDisabled)),
                         ),
                     ],
-                    if (a['status'] == 'pending' && !isSA)
+                    if (a['status'] == 'pending' && !isSA && a['requested_by'] != _api.userId)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Column(children: [

@@ -11,6 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use App\Models\Contract;
+use App\Events\ContractCompanyApproved;
 
 class PaymentController extends Controller
 {
@@ -23,7 +25,7 @@ class PaymentController extends Controller
         $methods = $client->client_type === 'individual' ? self::INDIVIDUAL_METHODS : self::BUSINESS_METHODS;
 
         return response()->json([
-            'payments' => $workspace->payments()->latest()->get(),
+            'payments' => $workspace->payments()->with('contract')->latest()->get(),
             'available_methods' => $methods,
             'client_type' => $client->client_type,
         ]);
@@ -36,6 +38,7 @@ class PaymentController extends Controller
 
         $request->validate([
             'amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|max:10',
             'method_type' => 'required|string|in:' . implode(',', $methods),
             'proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'notes' => 'nullable|string',
@@ -46,9 +49,22 @@ class PaymentController extends Controller
             $proofFileUrl = $request->file('proof_file')->store('payment-proofs/workspace-' . $workspace->id, 'public');
         }
 
+        // Auto-link to the latest company_approved or completed contract
+        $lastContract = $workspace->contracts()
+            ->whereIn('status', ['company_approved', 'completed'])
+            ->latest()
+            ->first();
+
+        // Prevent duplicate pending payment for the same contract
+        if ($lastContract && $workspace->payments()->where('contract_id', $lastContract->id)->where('status', 'pending')->exists()) {
+            return response()->json(['message' => 'يوجد طلب دفع معلق لهذا العقد بالفعل'], 422);
+        }
+
         $payment = $workspace->payments()->create([
             'client_id' => $workspace->client_id,
+            'contract_id' => $lastContract?->id,
             'amount' => $request->amount,
+            'currency' => $request->currency ?? 'SAR',
             'method_type' => $request->method_type,
             'proof_file_url' => $proofFileUrl,
             'notes' => $request->notes,
@@ -69,7 +85,11 @@ class PaymentController extends Controller
 
     public function review(Request $request, Payment $payment): JsonResponse
     {
-        if (!in_array($request->user()->role, ['super_admin'], true)) {
+        $user = $request->user();
+        $isSuperAdmin = $user->role === 'super_admin';
+        $isManager = $user->role === 'account_manager' && $payment->workspace->manager_id === $user->id;
+
+        if (!$isSuperAdmin && !$isManager) {
             return response()->json(['message' => 'غير مصرح بهذه الإجراء'], 403);
         }
 
@@ -86,16 +106,32 @@ class PaymentController extends Controller
         // Force-refresh workspace from DB to avoid stale relationship cache
         $workspace = $workspace->fresh();
 
-        $contractApproved = $workspace->contracts()->whereIn('status', ['completed', 'company_approved'])->exists();
         $paymentApproved = $workspace->payments()->where('status', 'approved')->exists();
 
         Log::info('Payment review activation check', [
             'payment_id' => $payment->id,
             'action' => $request->action,
             'workspace_id' => $workspace->id,
-            'contract_approved' => $contractApproved,
             'payment_approved' => $paymentApproved,
         ]);
+
+        if ($request->action === 'approved') {
+            $reviewerName = $request->user()?->name ?? 'system';
+            // Auto-company-approve client-signed contracts
+            $workspace->contracts()->where('status', 'client_approved')->each(function (Contract $contract) use ($reviewerName) {
+                $contract->update([
+                    'status' => 'company_approved',
+                    'company_signed_at' => now(),
+                    'company_signature_data' => $reviewerName,
+                    'company_signature_type' => 'text',
+                ]);
+                ContractCompanyApproved::dispatch($contract);
+            });
+            // Mark company_approved contracts as completed
+            $workspace->contracts()->where('status', 'company_approved')->update(['status' => 'completed']);
+        }
+
+        $contractApproved = $workspace->contracts()->whereIn('status', ['completed', 'company_approved', 'client_approved'])->exists();
 
         if ($contractApproved && $paymentApproved) {
             $workspace->update(['status' => 'active', 'activated_at' => now()]);

@@ -272,9 +272,13 @@ class _ContractsPageState extends State<ContractsPage> {
                     if (c['pdf_url'] != null)
                       TextButton(
                         onPressed: () async {
-                          final uri = Uri.tryParse(c['pdf_url'] as String);
+                          final url = _api.resolveFileUrl(c['pdf_url'] as String);
+                          final uri = Uri.tryParse(url);
+                          final messenger = ScaffoldMessenger.of(context);
                           if (uri != null && await canLaunchUrl(uri)) {
                             await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } else {
+                            messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                           }
                         },
                         child: const Icon(Icons.download, size: 16, color: ShadColors.success),
@@ -567,9 +571,13 @@ class _ContractDetailModalState extends State<_ContractDetailModal> {
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () async {
-                        final uri = Uri.tryParse(c['pdf_url'] as String);
+                        final url = _api.resolveFileUrl(c['pdf_url'] as String);
+                        final uri = Uri.tryParse(url);
                         if (uri != null && await canLaunchUrl(uri)) {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                         }
                       },
                       icon: const Icon(Icons.picture_as_pdf, size: 18),

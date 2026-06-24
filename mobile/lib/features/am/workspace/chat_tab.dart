@@ -182,7 +182,16 @@ class _ChatTabState extends State<ChatTab> {
             ),
           if (m['type'] == 'file' && m['file_url'] != null)
             InkWell(
-              onTap: () => launchUrl(Uri.parse(m['file_url']), mode: LaunchMode.externalApplication),
+              onTap: () async {
+                final url = _api.resolveFileUrl(m['file_url'] as String);
+                final uri = Uri.tryParse(url);
+                final messenger = ScaffoldMessenger.of(context);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                }
+              },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
@@ -215,7 +224,16 @@ class _ChatTabState extends State<ChatTab> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: InkWell(
-                onTap: () => launchUrl(Uri.parse(m['approval']['certificate']['pdf_url']), mode: LaunchMode.externalApplication),
+                onTap: () async {
+                  final url = _api.resolveFileUrl(m['approval']['certificate']['pdf_url'] as String);
+                  final uri = Uri.tryParse(url);
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                  }
+                },
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.picture_as_pdf, size: 14, color: ShadColors.error),
                   const SizedBox(width: 4),

@@ -14,8 +14,11 @@ class AccountManagerController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $isSA = $user instanceof \App\Models\User && $user->isSuperAdmin();
+
         $managers = User::where('role', User::ROLE_ACCOUNT_MANAGER)
-            ->when($request->user()->isSuperAdmin(), fn($q) => $q->where('super_admin_id', $request->user()->id))
+            ->when($isSA, fn($q) => $q->where('super_admin_id', $user->id))
             ->withCount('managedClients')
             ->latest()
             ->get();

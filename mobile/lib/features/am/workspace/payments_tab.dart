@@ -120,7 +120,16 @@ class _PaymentsTabState extends State<PaymentsTab> {
                   if (p['proof_url'] != null) ...[
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: () => launchUrl(Uri.parse(p['proof_url']), mode: LaunchMode.externalApplication),
+                      onTap: () async {
+                        final url = _api.resolveFileUrl(p['proof_url'] as String);
+                        final uri = Uri.tryParse(url);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                        }
+                      },
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.visibility, size: 16, color: ShadColors.primary),
                         const SizedBox(width: 4),

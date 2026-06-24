@@ -58,6 +58,7 @@ class AuthController extends Controller
                 'status' => $client->status,
                 'has_signed' => !is_null($client->signed_at),
             ],
+            'workspace_id' => $client->workspace?->id,
         ]);
     }
 

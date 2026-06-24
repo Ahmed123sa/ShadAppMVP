@@ -15,9 +15,16 @@ use App\Services\ApprovalPdfService;
 
 class ApprovalController extends Controller
 {
-    public function index(Workspace $workspace): JsonResponse
+    public function index(Request $request, Workspace $workspace): JsonResponse
     {
-        return response()->json(['approvals' => $workspace->approvals()->with('certificate', 'requester', 'files', 'chatMessage')->latest()->get()]);
+        $user = $request->user();
+        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
+
+        return response()->json(['approvals' => $workspace->approvals()
+            ->with('certificate', 'requester', 'files', 'chatMessage')
+            ->when($isAM, fn($q) => $q->where('requested_by', '!=', $user->id))
+            ->latest()
+            ->get()]);
     }
 
     public function store(Request $request, Workspace $workspace): JsonResponse
@@ -91,6 +98,12 @@ class ApprovalController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Prevent AM from responding to their own approval
+        if ($user instanceof \App\Models\User && $approval->requested_by === $user->id) {
+            return response()->json(['message' => 'لا يمكنك الرد على طلب موافقة قمت بإنشائه'], 403);
+        }
+
         $signature = $user instanceof \App\Models\Client ? $user->signature_data : null;
 
         $approval->update([

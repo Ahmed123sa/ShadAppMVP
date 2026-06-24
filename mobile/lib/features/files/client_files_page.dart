@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/loading_state.dart';
@@ -155,6 +156,16 @@ class _ClientFilesPageState extends State<ClientFilesPage> {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
+                onTap: f['file_url'] != null ? () async {
+                  final url = _api.resolveFileUrl(f['file_url'] as String);
+                  final uri = Uri.tryParse(url);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                  }
+                } : null,
                 leading: const Icon(Icons.attach_file, color: ShadColors.primary),
                 title: Text(f['name'] ?? '', style: ShadTypography.cardTitle, overflow: TextOverflow.ellipsis),
                 subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

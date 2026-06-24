@@ -11,14 +11,20 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'workspace_id', 'client_id', 'amount', 'method_type',
+        'workspace_id', 'client_id', 'contract_id', 'amount', 'currency', 'method_type',
         'proof_file', 'proof_file_url', 'status', 'notes', 'reviewed_by', 'reviewed_at',
     ];
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class);
+    }
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'currency' => 'string',
             'reviewed_at' => 'datetime',
         ];
     }

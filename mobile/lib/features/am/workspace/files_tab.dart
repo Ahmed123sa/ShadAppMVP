@@ -210,7 +210,16 @@ class _FilesTabState extends State<FilesTab> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    onTap: f['file_url'] != null ? () => launchUrl(Uri.parse(f['file_url']), mode: LaunchMode.externalApplication) : null,
+                    onTap: f['file_url'] != null ? () async {
+                      final url = _api.resolveFileUrl(f['file_url'] as String);
+                      final uri = Uri.tryParse(url);
+                      if (uri != null && await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      } else {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                      }
+                    } : null,
                     leading: const Icon(Icons.attach_file, color: ShadColors.primary),
                     title: Text(f['name'] ?? '', style: ShadTypography.cardTitle, overflow: TextOverflow.ellipsis),
                     subtitle: Row(children: [

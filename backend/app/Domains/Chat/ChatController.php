@@ -6,6 +6,7 @@ use App\Models\ChatMessage;
 use App\Models\Approval;
 use App\Models\Workspace;
 use App\Models\AuditLog;
+use App\Domains\Chat\MessageSent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -83,6 +84,8 @@ class ChatController extends Controller
                 'status' => 'pending',
             ]);
         }
+
+        broadcast(new MessageSent($message))->toOthers();
 
         return response()->json(['message' => $message->load('sender')], 201);
     }

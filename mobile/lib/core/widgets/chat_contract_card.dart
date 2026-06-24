@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
+import '../api_client.dart';
 import 'package:shadapp_client/generated/app_localizations.dart';
 import 'status_badge.dart';
 
@@ -58,9 +59,12 @@ class ChatContractCard extends StatelessWidget {
               const SizedBox(height: 4),
               InkWell(
                 onTap: () async {
-                  final uri = Uri.tryParse(contract['pdf_url'] as String);
+                  final url = ApiClient().resolveFileUrl(contract['pdf_url'] as String);
+                  final uri = Uri.tryParse(url);
                   if (uri != null && await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                   }
                 },
                 child: Row(mainAxisSize: MainAxisSize.min, children: [

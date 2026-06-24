@@ -25,8 +25,11 @@ class AuditController extends Controller
         $paymentModel = \App\Models\Payment::query();
         $contractModel = \App\Models\Contract::query();
 
-        if ($request->user()->isAccountManager()) {
-            $clientModel->where('manager_id', $request->user()->id);
+        $user = $request->user();
+        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
+
+        if ($isAM) {
+            $clientModel->where('manager_id', $user->id);
             $paymentModel->whereIn('client_id', $clientModel->pluck('id'));
         }
 

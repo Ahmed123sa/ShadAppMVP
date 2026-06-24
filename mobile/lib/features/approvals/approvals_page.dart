@@ -128,9 +128,13 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         onTap: () async {
                           final pdfUrl = a['certificate']['pdf_url'] as String?;
                           if (pdfUrl != null) {
-                            final uri = Uri.tryParse(pdfUrl);
+                            final url = _api.resolveFileUrl(pdfUrl);
+                            final uri = Uri.tryParse(url);
                             if (uri != null && await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                             }
                           }
                         },

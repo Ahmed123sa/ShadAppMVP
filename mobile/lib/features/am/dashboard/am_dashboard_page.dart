@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
@@ -20,12 +21,14 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
   List<dynamic> _filteredClients = [];
   bool _loading = true;
   int _unreadNotifs = 0;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
     _searchController.addListener(_filter);
+    _startRefresh();
   }
 
   Future<void> _load() async {
@@ -57,6 +60,11 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       _unreadNotifs = (data['unread_count'] as num? ?? 0).toInt();
     } catch (_) {}
     if (mounted) setState(() {});
+  }
+
+  void _startRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) { _load(); _loadNotifs(); });
   }
 
   Future<void> _logout() async {
@@ -272,6 +280,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -410,8 +419,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       Row(children: [
         if (isSA)
           Expanded(child: _featuredCard(Icons.manage_accounts, 'إدارة المديرين', () => context.push('/am/managers'))),
-        if (!isSA)
-          Expanded(child: _featuredCard(Icons.person_add, loc2.createNewClient, () async { await context.push('/am/clients/create'); _load(); })),
+        Expanded(child: _featuredCard(Icons.person_add, loc2.createNewClient, () async { await context.push('/am/clients/create'); _load(); })),
         const SizedBox(width: 8),
         Expanded(child: _featuredCard(Icons.pending_actions, loc2.pendingApprovalContracts, _showPendingContracts)),
       ]),

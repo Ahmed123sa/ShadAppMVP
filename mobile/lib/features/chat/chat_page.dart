@@ -233,9 +233,13 @@ class _ChatPageState extends State<ChatPage> {
                                       padding: const EdgeInsets.only(bottom: 4),
                                       child: InkWell(
                                         onTap: () async {
-                                          final uri = Uri.tryParse(m['file_url'] as String);
+                                          final url = _api.resolveFileUrl(m['file_url'] as String);
+                                          final uri = Uri.tryParse(url);
                                           if (uri != null && await canLaunchUrl(uri)) {
                                             await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                                           }
                                         },
                                         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -276,9 +280,13 @@ class _ChatPageState extends State<ChatPage> {
                                       padding: const EdgeInsets.only(top: 4),
                                       child: InkWell(
                                         onTap: () async {
-                                          final uri = Uri.tryParse(m['approval']['certificate']['pdf_url'] as String);
+                                          final url = _api.resolveFileUrl(m['approval']['certificate']['pdf_url'] as String);
+                                          final uri = Uri.tryParse(url);
                                           if (uri != null && await canLaunchUrl(uri)) {
                                             await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            if (!context.mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
                                           }
                                         },
                                         child: Row(mainAxisSize: MainAxisSize.min, children: [
