@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import type { Client } from '@/types';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -16,11 +16,20 @@ import MeetingsTab from '@/components/meetings/MeetingsTab';
 import CalendarTab from '@/components/calendar/CalendarTab';
 import NoWorkspace from '@/components/workspace/NoWorkspace';
 
+const FILE_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+
+function resolveFileUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${FILE_BASE}/storage/${url.replace(/^\/?storage\//, '')}`;
+}
+
 const TABS = ['المحادثة', 'الملفات', 'العقود', 'المدفوعات', 'الموافقات', 'الاجتماعات', 'التقويم'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ClientWorkspace() {
   const { id } = useParams();
+  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('المحادثة');
   const [loading, setLoading] = useState(true);
@@ -63,11 +72,23 @@ export default function ClientWorkspace() {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">{client.company_name}</h2>
-              <p className="text-sm text-zinc-500">{client.contact_person} • {client.email}{client.country ? ` • ${client.country}` : ''}{client.industry ? ` • ${client.industry}` : ''}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200 flex-shrink-0">
+                {client.avatar_url ? (
+                  <img src={resolveFileUrl(client.avatar_url)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-lg text-zinc-400">
+                    {client.company_name?.[0] || '?'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">{client.company_name}</h2>
+                <p className="text-sm text-zinc-500">{client.contact_person} • {client.email}{client.country ? ` • ${client.country}` : ''}{client.industry ? ` • ${client.industry}` : ''}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
+              <button onClick={() => router.push(`/dashboard/clients/${id}/settings`)} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</button>
               <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:underline">تعديل</button>
               <button onClick={() => setDeleteConfirm(true)} className="text-xs text-red-500 hover:underline">حذف</button>
               <span className={`px-2.5 py-1 rounded-full text-xs ${client.workspace?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>

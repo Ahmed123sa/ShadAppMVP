@@ -8,6 +8,13 @@ import ContractBuilder from '@/components/chat/ContractBuilder';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
+const FILE_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+function resolveFileUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${FILE_BASE}/storage/${url.replace(/^\/?storage\//, '')}`;
+}
+
 export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: boolean }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
@@ -78,13 +85,34 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
           ))}
           {messages.map((m) => {
             const isClient = m.sender_type === 'App\\Models\\Client';
+            const initial = ((m.sender?.name?.[0]) || '?').toUpperCase();
             return (
             <div key={m.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-xs">
-                <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
-                  <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
-                  {m.message}
+              <div className="max-w-xs flex gap-2 items-start">
+                {!isClient && (
+                  <div className="w-6 h-6 rounded-full bg-blue-200 overflow-hidden flex-shrink-0 mt-1">
+                    {m.sender?.avatar_url ? (
+                      <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-blue-700 font-medium">{initial}</div>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
+                    <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
+                    {m.message}
+                  </div>
                 </div>
+                {isClient && (
+                  <div className="w-6 h-6 rounded-full bg-zinc-200 overflow-hidden flex-shrink-0 mt-1">
+                    {m.sender?.avatar_url ? (
+                      <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 font-medium">{initial}</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             );
@@ -120,32 +148,54 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
           const approval = m.approval;
           const isPending = m.requires_action && !m.action_taken;
           const isResponded = m.action_taken;
+          const initial = ((m.sender?.name?.[0]) || '?').toUpperCase();
+          const senderLabel = isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''));
           return (
           <div key={m.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
-            <div className="max-w-xs">
-              <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
-                <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
-                {m.type === 'file' && m.file_url && (
-                  <div className="mb-1">
-                    {m.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
-                      <img src={m.file_url} alt="مرفق" className="max-w-full rounded-lg max-h-40" />
+            <div className="max-w-xs flex gap-2 items-start">
+              {!isClient && (
+                <div className="w-7 h-7 rounded-full bg-blue-200 overflow-hidden flex-shrink-0 mt-1">
+                  {m.sender?.avatar_url ? (
+                    <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-blue-700 font-medium">{initial}</div>
+                  )}
+                </div>
+              )}
+              <div>
+                <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
+                  <p className="text-xs text-zinc-500 mb-0.5">{senderLabel}</p>
+                  {m.type === 'file' && m.file_url && (
+                    <div className="mb-1">
+                      {m.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
+                        <img src={m.file_url} alt="مرفق" className="max-w-full rounded-lg max-h-40" />
+                      ) : (
+                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">📎 عرض المرفق</a>
+                      )}
+                    </div>
+                  )}
+                  {m.message}
+                  {isPending && <p className="text-xs text-red-500 mt-1 font-medium">🏷️ طلب موافقة — قيد الانتظار</p>}
+                  {isResponded && <p className={`text-xs mt-1 font-medium ${m.action_result === 'approved' ? 'text-emerald-600' : m.action_result === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>{actionResultLabel[m.action_result || '']}</p>}
+                  {approval?.certificate?.pdf_url && (
+                    <a href={`/storage/${approval.certificate.pdf_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline block mt-1">📄 تحميل شهادة الموافقة</a>
+                  )}
+                </div>
+                {isClient && (
+                  <div className="w-7 h-7 rounded-full bg-zinc-200 overflow-hidden flex-shrink-0 mt-1">
+                    {m.sender?.avatar_url ? (
+                      <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">📎 عرض المرفق</a>
+                      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600 font-medium">{initial}</div>
                     )}
                   </div>
                 )}
-                {m.message}
-                {isPending && <p className="text-xs text-red-500 mt-1 font-medium">🏷️ طلب موافقة — قيد الانتظار</p>}
-                {isResponded && <p className={`text-xs mt-1 font-medium ${m.action_result === 'approved' ? 'text-emerald-600' : m.action_result === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>{actionResultLabel[m.action_result || '']}</p>}
-                {approval?.certificate?.pdf_url && (
-                  <a href={`/storage/${approval.certificate.pdf_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline block mt-1">📄 تحميل شهادة الموافقة</a>
+                {!isClient && !m.action_taken && (
+                  <button onClick={() => toggleAction(m.id)} className={`text-xs mt-0.5 ${m.requires_action ? 'text-red-500' : 'text-zinc-400'} hover:underline`}>
+                    {m.requires_action ? 'إلغاء طلب الموافقة' : 'طلب موافقة العميل'}
+                  </button>
                 )}
               </div>
-              {!isClient && !m.action_taken && (
-                <button onClick={() => toggleAction(m.id)} className={`text-xs mt-0.5 ${m.requires_action ? 'text-red-500' : 'text-zinc-400'} hover:underline`}>
-                  {m.requires_action ? 'إلغاء طلب الموافقة' : 'طلب موافقة العميل'}
-                </button>
-              )}
             </div>
           </div>
           );

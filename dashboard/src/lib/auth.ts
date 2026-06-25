@@ -5,6 +5,10 @@ export interface User {
   name: string;
   email: string;
   role: 'super_admin' | 'account_manager';
+  official_email?: string;
+  signature_data?: string;
+  signed_at?: string;
+  avatar_url?: string;
 }
 
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {

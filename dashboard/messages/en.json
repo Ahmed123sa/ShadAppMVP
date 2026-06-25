@@ -26,7 +26,28 @@
     "home": "Home",
     "clients": "Clients",
     "reports": "Reports",
-    "account_managers": "Managers"
+    "account_managers": "Managers",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "settings": {
+    "title": "Settings",
+    "official_email": "Official Email",
+    "official_email_hint": "Contract and approval notifications will be sent to this email",
+    "signature": "Electronic Signature",
+    "signature_hint": "The signature used when approving contracts",
+    "saved_signature": "Saved Signature",
+    "use_saved": "Use Saved Signature",
+    "draw_signature": "Draw Signature",
+    "type_signature": "Type Signature",
+    "upload_signature": "Upload Signature Image",
+    "save": "Save Settings",
+    "saved": "Settings saved successfully",
+    "avatar": "Profile Picture",
+    "change_avatar": "Change Picture",
+    "name": "Display Name",
+    "email_info": "Email",
+    "profile_saved": "Profile saved successfully"
   },
   "contracts": {
     "title": "Contracts",

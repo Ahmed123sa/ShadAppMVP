@@ -26,7 +26,28 @@
     "home": "الرئيسية",
     "clients": "العملاء",
     "reports": "التقارير",
-    "account_managers": "المدراء"
+    "account_managers": "المدراء",
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "official_email": "البريد الإلكتروني الرسمي",
+    "official_email_hint": "سيتم إرسال إشعارات العقود والموافقات إلى هذا البريد",
+    "signature": "التوقيع الإلكتروني",
+    "signature_hint": "التوقيع المستخدم عند اعتماد العقود",
+    "saved_signature": "التوقيع المحفوظ",
+    "use_saved": "استخدام التوقيع المحفوظ",
+    "draw_signature": "رسم توقيع",
+    "type_signature": "كتابة توقيع",
+    "upload_signature": "رفع صورة توقيع",
+    "save": "حفظ الإعدادات",
+    "saved": "تم حفظ الإعدادات بنجاح",
+    "avatar": "الصورة الشخصية",
+    "change_avatar": "تغيير الصورة",
+    "name": "الاسم الظاهر",
+    "email_info": "البريد الإلكتروني",
+    "profile_saved": "تم حفظ الملف الشخصي بنجاح"
   },
   "contracts": {
     "title": "العقود",

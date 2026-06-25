@@ -9,6 +9,7 @@ export interface ClientSession {
     email: string;
     status: string;
     has_signed: boolean;
+    avatar_url?: string;
   };
 }
 

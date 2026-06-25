@@ -17,8 +17,17 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
   const [customClauses, setCustomClauses] = useState<string[]>([]);
   const [newCustom, setNewCustom] = useState('');
   const [approveSig, setApproveSig] = useState<{ id: number; signature: string } | null>(null);
+  const [savedUserSig, setSavedUserSig] = useState<{ data: string; type: string } | null>(null);
+  const [useSavedSig, setUseSavedSig] = useState(false);
   const [requiredDocs, setRequiredDocs] = useState<string[]>([]);
   const [newReqDoc, setNewReqDoc] = useState('');
+
+  const FILE_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
+  const resolveFileUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${FILE_BASE}/storage/${url.replace(/^\/?storage\//, '')}`;
+  };
 
   useEffect(() => {
     Promise.all([
@@ -60,11 +69,25 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
     if (data) setContracts((prev) => prev.map((c) => c.id === id ? data.contract : c));
   };
 
+  const openApproveSig = async (contractId: number) => {
+    setUseSavedSig(false);
+    setApproveSig({ id: contractId, signature: '' });
+    setSavedUserSig(null);
+    try {
+      const { data } = await api.get('/auth/me');
+      if (data.user?.signature_data) {
+        setSavedUserSig({ data: data.user.signature_data, type: data.user.signature_type || 'text' });
+      }
+    } catch {}
+  };
+
   const doCompanyApprove = async () => {
     if (!approveSig) return;
-    const { data } = await api.post(`/contracts/${approveSig.id}/company-approve`, { signature: approveSig.signature }).catch(() => ({ data: null }));
+    const payload = useSavedSig ? { use_saved_signature: true } : { signature: approveSig.signature };
+    const { data } = await api.post(`/contracts/${approveSig.id}/company-approve`, payload).catch(() => ({ data: null }));
     if (data) setContracts((prev) => prev.map((c) => c.id === approveSig.id ? data.contract : c));
     setApproveSig(null);
+    setSavedUserSig(null);
   };
 
   if (loading) return <LoadingSkeleton />;
@@ -159,7 +182,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
               <>
                 {c.pdf_url && <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">📄 عرض العقد الموقع</a>}
                 {isSA && (
-                  <button onClick={() => setApproveSig({ id: c.id, signature: '' })} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700">اعتماد الشركة</button>
+                  <button onClick={() => openApproveSig(c.id)} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700">اعتماد الشركة</button>
                 )}
               </>
             )}
@@ -177,17 +200,51 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
       ))}
 
       {approveSig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setApproveSig(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => { setApproveSig(null); setSavedUserSig(null); setUseSavedSig(false); }}>
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold">اعتماد العقد من الشركة</h3>
-            <p className="text-xs text-zinc-500">اكتب اسمك كاملاً لتوقيع اعتماد العقد (الطرف الثاني)</p>
-            <textarea value={approveSig.signature} onChange={(e) => setApproveSig({ ...approveSig, signature: e.target.value })}
-              className="border rounded-lg px-4 py-3 text-lg font-medium w-full h-20 text-center"
-              placeholder="اكتب اسمك هنا..." />
+
+            {savedUserSig && !useSavedSig ? (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-600">التوقيع المحفوظ:</p>
+                {savedUserSig.type === 'text' ? (
+                  <p className="text-lg font-[cursive] border rounded-lg p-4 bg-zinc-50 text-center">{savedUserSig.data}</p>
+                ) : (
+                  <img src={resolveFileUrl(savedUserSig.data)} alt="التوقيع المحفوظ" className="max-h-20 border rounded-lg p-2 bg-zinc-50 mx-auto" />
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => setUseSavedSig(true)}
+                    className="flex-1 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700">استخدام التوقيع المحفوظ</button>
+                  <button onClick={() => { setSavedUserSig(null); }}
+                    className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border text-zinc-600 hover:bg-zinc-50">كتابة توقيع جديد</button>
+                </div>
+              </div>
+            ) : useSavedSig ? (
+              <div className="space-y-3">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+                  <p className="text-sm text-purple-700 font-medium">سيتم استخدام توقيعك المحفوظ</p>
+                  {savedUserSig && (
+                    savedUserSig.type === 'text' ? (
+                      <p className="text-lg font-[cursive] mt-2 text-purple-900">{savedUserSig.data}</p>
+                    ) : (
+                      <img src={resolveFileUrl(savedUserSig.data)} alt="" className="max-h-16 mx-auto mt-2" />
+                    )
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-zinc-500">اكتب اسمك كاملاً لتوقيع اعتماد العقد (الطرف الثاني)</p>
+                <textarea value={approveSig.signature} onChange={(e) => setApproveSig({ ...approveSig, signature: e.target.value })}
+                  className="border rounded-lg px-4 py-3 text-lg font-medium w-full h-20 text-center"
+                  placeholder="اكتب اسمك هنا..." />
+              </>
+            )}
+
             <div className="flex gap-2">
-              <button onClick={doCompanyApprove} disabled={!approveSig.signature.trim()}
+              <button onClick={doCompanyApprove} disabled={!useSavedSig && !savedUserSig && !approveSig.signature.trim()}
                 className="flex-1 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50">اعتماد وتوقيع</button>
-              <button onClick={() => setApproveSig(null)}
+              <button onClick={() => { setApproveSig(null); setSavedUserSig(null); setUseSavedSig(false); }}
                 className="px-4 py-2.5 rounded-lg text-sm font-medium border text-zinc-600 hover:bg-zinc-50">إلغاء</button>
             </div>
           </div>

@@ -22,7 +22,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', label: t('home'), icon: '📊' },
     { href: '/dashboard/clients', label: t('clients'), icon: '👥' },
     { href: '/dashboard/reports', label: t('reports'), icon: '📈' },
+    { href: '/dashboard/settings', label: t('settings'), icon: '⚙️' },
   ];
+  const profileItem = { href: '/dashboard/profile', label: t('profile'), icon: '👤' };
 
   useEffect(() => {
     setMounted(true);
@@ -68,8 +70,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
-          <button onClick={logout} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white w-full px-4 py-2">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-slate-700">
+          <Link href={profileItem.href} className={`flex items-center gap-3 px-6 py-3 text-sm transition-colors ${pathname === profileItem.href ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}
+            onClick={() => setSidebarOpen(false)}>
+            <span>{profileItem.icon}</span>
+            {profileItem.label}
+          </Link>
+          <button onClick={logout} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white w-full px-6 py-3 border-t border-slate-700">
             {c('logout')}
           </button>
         </div>

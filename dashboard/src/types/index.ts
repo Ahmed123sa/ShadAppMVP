@@ -13,6 +13,7 @@ export interface Client {
   payment_status: string;
   signature_data?: string;
   signed_at?: string;
+  avatar_url?: string;
   notes?: string;
   workspace?: Workspace | null;
   subUsers: any[];
@@ -170,6 +171,10 @@ export interface User {
   name: string;
   email: string;
   role: 'super_admin' | 'account_manager';
+  official_email?: string;
+  signature_data?: string;
+  signed_at?: string;
+  avatar_url?: string;
 }
 
 export interface ContractClauseTemplate {

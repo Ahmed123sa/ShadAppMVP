@@ -14,6 +14,7 @@ import ClientMeetings from '@/components/client-meetings/ClientMeetings';
 import ClientSignature from '@/components/client-signature/ClientSignature';
 import ClientSubUsers from '@/components/client-subusers/ClientSubUsers';
 import StagesStepper from '@/components/client-dashboard/StagesStepper';
+import Link from 'next/link';
 
 const TABS = [
   'العقود', 'المدفوعات', 'الموافقات', 'الشات', 'الملفات', 'الاجتماعات', 'التوقيع', 'المستخدمين',
@@ -72,7 +73,9 @@ export default function ClientDashboardPage() {
       <div className="min-h-screen bg-zinc-50">
         <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-bold">ShadApp</h1>
-          <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
+          <div className="flex items-center gap-3">
+            <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
+          </div>
         </header>
         <main className="max-w-2xl mx-auto p-6 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
@@ -137,13 +140,14 @@ export default function ClientDashboardPage() {
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">ShadApp</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-500">{session.company_name}</span>
-          <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">
-            تسجيل خروج
-          </button>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-zinc-500">{session.company_name}</span>
+            <Link href="/client-dashboard/settings" className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</Link>
+            <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">
+              تسجيل خروج
+            </button>
+          </div>
+        </header>
 
       <main className="max-w-5xl mx-auto p-6 space-y-6">
         <StagesStepper client={client} workspace={workspace} onStageClick={(tab) => setActiveTab(tab as Tab)} />
