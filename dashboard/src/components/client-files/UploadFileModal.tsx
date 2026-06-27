@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import api from '@/lib/api';
 
 export default function UploadFileModal({ wsId, definitions, onClose, onCreated }: {
@@ -12,15 +12,23 @@ export default function UploadFileModal({ wsId, definitions, onClose, onCreated 
   const [file, setFile] = useState<File | null>(null);
   const [definitionId, setDefinitionId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
     if (!file) return;
     setSaving(true);
+    setError('');
     const form = new FormData();
     form.append('file', file);
     if (definitionId) form.append('document_definition_id', definitionId);
-    const { data } = await api.post(`/workspaces/${wsId}/files`, form).catch(() => ({ data: null }));
-    if (data) onCreated(data.file);
+    try {
+      const { data } = await api.post(`/workspaces/${wsId}/files`, form);
+      if (data) onCreated(data.file);
+      onClose();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || 'فشل رفع الملف');
+    }
     setSaving(false);
   };
 
@@ -37,10 +45,13 @@ export default function UploadFileModal({ wsId, definitions, onClose, onCreated 
           {definitions.map((d) => <option key={d.id} value={d.id}>{d.name}{d.is_required ? ' *' : ''}</option>)}
         </select>
 
-        <label className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
-          <input type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <span className="border border-blue-200 rounded-lg px-4 py-2">{file ? file.name : '+ اختيار ملف'}</span>
-        </label>
+        <input type="file" ref={fileRef} className="hidden" onChange={(e) => { setFile(e.target.files?.[0] || null); setError(''); }} />
+        <button type="button" onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-700 border border-blue-200 rounded-lg px-4 py-2 w-full">
+          {file ? file.name : '+ اختيار ملف'}
+        </button>
+
+        {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <button onClick={submit} disabled={saving || !file}
           className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">

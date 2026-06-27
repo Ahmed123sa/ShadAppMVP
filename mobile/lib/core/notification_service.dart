@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_client.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
   final notifService = NotificationService();
   await notifService._initLocalNotifications();
-  notifService._showLocalNotification(message);
+  await notifService._showLocalNotification(message);
 }
 
 class NotificationService {
@@ -25,12 +30,12 @@ class NotificationService {
   StreamSubscription? _messageSubscription;
 
   void Function(RemoteMessage)? onMessageOpenedApp;
+  void Function(Map<String, String>)? onLocalNotificationTapped;
 
   Future<void> init() async {
     if (_initialized) return;
 
     await _initLocalNotifications();
-
     await _requestPermission();
 
     _fcmToken = await _firebaseMessaging.getToken();
@@ -47,6 +52,15 @@ class NotificationService {
 
     _messageSubscription = FirebaseMessaging.onMessage.listen(_showLocalNotification);
 
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      onMessageOpenedApp?.call(message);
+    });
+
+    final initialMessage = await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      onMessageOpenedApp?.call(initialMessage);
+    }
+
     _initialized = true;
   }
 
@@ -55,7 +69,15 @@ class NotificationService {
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
-      onDidReceiveNotificationResponse: (_) {},
+      onDidReceiveNotificationResponse: (response) {
+        final payloadStr = response.payload;
+        if (payloadStr != null) {
+          try {
+            final data = Map<String, String>.from(jsonDecode(payloadStr));
+            onLocalNotificationTapped?.call(data);
+          } catch (_) {}
+        }
+      },
     );
   }
 
@@ -67,24 +89,29 @@ class NotificationService {
     );
   }
 
-  void _showLocalNotification(RemoteMessage message) {
+  Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
     if (notification == null) return;
 
-    _localNotifications.show(
+    final data = message.data;
+    final payload = data.isNotEmpty ? jsonEncode(data) : null;
+
+    await _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch,
       notification.title,
       notification.body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'shadapp_channel',
+          'shadapp_channel_v2',
           'إشعارات ShadApp',
           channelDescription: 'إشعارات التطبيق',
           importance: Importance.high,
           priority: Priority.high,
+          playSound: true,
         ),
         iOS: DarwinNotificationDetails(),
       ),
+      payload: payload,
     );
   }
 
@@ -99,6 +126,8 @@ class NotificationService {
   }
 
   String _getDeviceType() {
+    if (kIsWeb) return 'web';
+    if (Platform.isIOS) return 'ios';
     return 'android';
   }
 

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  String baseUrl = 'http://localhost:8000/api';
+  String baseUrl = 'http://192.168.1.103:8000/api';
   final Duration _timeout = const Duration(seconds: 30);
   String? _token;
   int? userId;

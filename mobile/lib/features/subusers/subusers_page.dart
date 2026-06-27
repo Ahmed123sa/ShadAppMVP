@@ -3,6 +3,7 @@ import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/loading_state.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/password_field.dart';
 
 class SubUsersPage extends StatefulWidget {
   const SubUsersPage({super.key});
@@ -110,11 +111,7 @@ class _SubUsersPageState extends State<SubUsersPage> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'كلمة المرور'),
-                  obscureText: true,
-                ),
+                PasswordField(controller: _passwordController, showRequirements: false),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,

@@ -24,8 +24,8 @@ class FcmChannel
         $firebase = app(FirebaseService::class);
 
         $notifData = [
-            'title' => $data['title'] ?? '',
-            'body' => $data['body'] ?? '',
+            'title' => mb_convert_encoding($data['title'] ?? '', 'UTF-8'),
+            'body' => mb_convert_encoding($data['body'] ?? '', 'UTF-8'),
         ];
 
         $customData = $data['data'] ?? [];

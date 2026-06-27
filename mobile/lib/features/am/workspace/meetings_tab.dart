@@ -28,11 +28,12 @@ class _MeetingsTabState extends State<MeetingsTab> {
   }
 
   Future<void> _load() async {
-    final wsId = _api.workspaceId;
-    if (wsId == null) return;
+    final isSA = _api.role == 'super_admin';
     setState(() { _loading = true; _error = null; });
     try {
-      final data = await _api.get('/workspaces/$wsId/meetings');
+      final data = isSA
+          ? await _api.get('/all-meetings')
+          : await _api.get('/workspaces/${_api.workspaceId}/meetings');
       _meetings = data['meetings'] as List<dynamic>? ?? [];
     } catch (_) {
       _error = 'فشل تحميل الاجتماعات';
@@ -88,10 +89,12 @@ class _MeetingsTabState extends State<MeetingsTab> {
               ],
             ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateSheet,
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _api.role == 'super_admin'
+          ? null
+          : FloatingActionButton(
+              onPressed: _showCreateSheet,
+              child: const Icon(Icons.add),
+            ),
     );
   }
 

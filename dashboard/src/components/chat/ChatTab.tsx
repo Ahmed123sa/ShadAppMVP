@@ -124,7 +124,6 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
 
   const actionResultLabel: Record<string, string> = {
     approved: '✅ تمت الموافقة',
-    rejected: '❌ تم الرفض',
     edit_requested: '✎ طلب تعديل',
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { isClientAuthenticated, getClient, clientLogout } from '@/lib/client-auth';
@@ -22,6 +22,7 @@ export default function ClientSettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -97,10 +98,11 @@ export default function ClientSettingsPage() {
                 </div>
               )}
             </div>
-            <label className="cursor-pointer bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+            <button onClick={() => avatarInputRef.current?.click()} type="button"
+              className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
               تغيير الصورة
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            </label>
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
           <div className="space-y-1">

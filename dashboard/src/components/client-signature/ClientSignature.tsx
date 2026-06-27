@@ -16,6 +16,7 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
   const [signature, setSignature] = useState(!sigData || isImageUrl(sigData) ? '' : sigData);
   const [preview, setPreview] = useState<string | null>(isImageUrl(sigData) ? sigData : null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [done, setDone] = useState(!!clientData?.signed_at);
   const [error, setError] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +67,22 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
     }
   };
 
+  const deleteSignature = async () => {
+    if (!confirm('هل أنت متأكد من حذف التوقيع؟')) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/clients/${clientId}/sign`);
+      setDone(false);
+      setSignature('');
+      setPreview(null);
+      onSigned?.();
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const existingImage = isImageUrl(sigData) ? sigData : null;
 
   return (
@@ -84,8 +101,14 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
             ) : sigData && !isImageUrl(sigData) ? (
               <p className="text-lg font-handwriting mt-4 text-zinc-600 border-t pt-4">{sigData}</p>
             ) : null}
-            <button onClick={() => setDone(false)}
-              className="mt-4 text-sm text-blue-600 hover:underline">تعديل التوقيع</button>
+            <div className="flex justify-center gap-3 mt-4">
+              <button onClick={() => setDone(false)}
+                className="text-sm text-blue-600 hover:underline">تعديل التوقيع</button>
+              <button onClick={deleteSignature} disabled={deleting}
+                className="text-sm text-red-600 hover:underline disabled:opacity-50">
+                {deleting ? '...' : 'حذف التوقيع'}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

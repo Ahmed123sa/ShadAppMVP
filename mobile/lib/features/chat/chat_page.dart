@@ -113,13 +113,6 @@ class _ChatPageState extends State<ChatPage> {
     } catch (_) {}
   }
 
-  Future<void> _reject(int contractId) async {
-    try {
-      await _api.post('/contracts/$contractId/client-action', {'action': 'rejected'});
-      _load();
-    } catch (_) {}
-  }
-
   Future<void> _respondToMessage(int msgId, String action) async {
     try {
       await _api.post('/chat/$msgId/respond', {'action': action});
@@ -190,7 +183,7 @@ class _ChatPageState extends State<ChatPage> {
                                       );
                                     },
                                     onApprove: isClient && contract['status'] == 'sent' ? () => _approve(contract['id']) : null,
-                                    onReject: isClient && contract['status'] == 'sent' ? () => _reject(contract['id']) : null,
+
                                   ),
                                 ],
                               ),
@@ -260,8 +253,7 @@ class _ChatPageState extends State<ChatPage> {
                                           _actionChip('موافقة', ShadColors.success, () => _respondToMessage(m['id'], 'approved')),
                                           const SizedBox(width: 4),
                                           _actionChip('تعديل', ShadColors.warning, () => _respondToMessage(m['id'], 'edit_requested')),
-                                          const SizedBox(width: 4),
-                                          _actionChip('رفض', ShadColors.error, () => _respondToMessage(m['id'], 'rejected')),
+
                                         ]),
                                       ]),
                                     ),

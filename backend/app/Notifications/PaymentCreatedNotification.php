@@ -19,7 +19,7 @@ class PaymentCreatedNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
@@ -28,19 +28,23 @@ class PaymentCreatedNotification extends Notification
             'type' => 'payment_created',
             'payment_id' => $this->payment->id,
             'amount' => $this->payment->amount,
-            'message' => "تم إنشاء دفعة جديدة: {$this->payment->amount} ر.س",
+            'message' => "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙØ¹Ø© Ø¬Ø¯ÙŠØ¯Ø©: {$this->payment->amount} Ø±.Ø³",
         ];
     }
 
     public function toFcm($notifiable): array
     {
         return [
-            'title' => 'دفعة جديدة',
-            'body' => "تم إنشاء دفعة بقيمة {$this->payment->amount} ر.س",
+            'title' => 'Ø¯ÙØ¹Ø© Ø¬Ø¯ÙŠØ¯Ø©',
+            'body' => "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙØ¹Ø© Ø¨Ù‚ÙŠÙ…Ø© {$this->payment->amount} Ø±.Ø³",
             'data' => [
                 'type' => 'payment',
                 'id' => (string) $this->payment->id,
             ],
         ];
+    }
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

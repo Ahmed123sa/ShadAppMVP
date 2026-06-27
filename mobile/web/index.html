@@ -31,16 +31,21 @@
 
   <title>shadapp_client</title>
   <link rel="manifest" href="manifest.json">
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyBYicxVD6SINR6PuzVdVuq0hG8Px0d9fY0",
+      authDomain: "shadapp-f9d92.firebaseapp.com",
+      projectId: "shadapp-f9d92",
+      storageBucket: "shadapp-f9d92.firebasestorage.app",
+      messagingSenderId: "461634224771",
+      appId: "1:461634224771:android:813ed517664609a04ad1b6"
+    });
+  </script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

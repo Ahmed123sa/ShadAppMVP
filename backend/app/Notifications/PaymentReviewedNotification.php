@@ -12,40 +12,62 @@ class PaymentReviewedNotification extends Notification
 
     public Payment $payment;
     public string $action;
+    public bool $workspaceActivated;
 
-    public function __construct(Payment $payment, string $action)
+    public function __construct(Payment $payment, string $action, bool $workspaceActivated = false)
     {
         $this->payment = $payment;
         $this->action = $action;
+        $this->workspaceActivated = $workspaceActivated;
     }
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
     {
-        $status = $this->action === 'approved' ? 'تم اعتمادها' : 'تم رفضها';
+        if ($this->workspaceActivated) {
+            return [
+                'type' => 'workspace_activated',
+                'workspace_id' => $this->payment->workspace_id,
+                'message' => 'تم اعتماد الدفعة وتفعيل مساحة العمل — يمكنك الآن التواصل مع مدير الحساب',
+            ];
+        }
         return [
             'type' => 'payment_reviewed',
             'payment_id' => $this->payment->id,
             'action' => $this->action,
             'amount' => $this->payment->amount,
-            'message' => "الدفعة {$this->payment->amount} ر.س {$status}",
+            'message' => "الدفعة {$this->payment->amount} ر.س تم اعتمادها",
         ];
     }
 
     public function toFcm($notifiable): array
     {
-        $status = $this->action === 'approved' ? 'مقبولة' : 'مرفوضة';
+        if ($this->workspaceActivated) {
+            return [
+                'title' => 'تم تفعيل مساحة العمل',
+                'body' => "تم اعتماد الدفعة وتفعيل مساحة العمل — يمكنك الآن التواصل مع مدير الحساب",
+                'data' => [
+                    'type' => 'workspace_activated',
+                    'workspace_id' => (string) $this->payment->workspace_id,
+                ],
+            ];
+        }
         return [
             'title' => 'مراجعة دفعة',
-            'body' => "الدفعة {$this->payment->amount} ر.س {$status}",
+            'body' => "الدفعة {$this->payment->amount} ر.س مقبولة",
             'data' => [
                 'type' => 'payment',
                 'id' => (string) $this->payment->id,
             ],
         ];
+    }
+
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

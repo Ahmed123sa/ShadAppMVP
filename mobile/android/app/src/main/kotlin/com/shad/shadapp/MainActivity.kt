@@ -1,4 +1,4 @@
-package com.example.shadapp_client
+package com.shad.shadapp
 
 import io.flutter.embedding.android.FlutterActivity
 

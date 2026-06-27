@@ -142,6 +142,12 @@ class SendContractEmailNotification
             }
         }
 
+        // Skip database notification if triggered by payment review (PaymentReviewed already notifies the client)
+        if ($event->fromPaymentReview) {
+            Log::info('Skipping client notification — came from payment review');
+            return;
+        }
+
         try {
             $client->notify(new ContractCompanyApprovedNotification($contract));
         } catch (\Exception $e) {

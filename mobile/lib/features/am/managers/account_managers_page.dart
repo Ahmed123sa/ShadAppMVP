@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/shad_logo.dart';
+import '../../../core/widgets/password_field.dart';
 
 class AccountManagersPage extends StatefulWidget {
   const AccountManagersPage({super.key});
@@ -33,59 +34,146 @@ class _AccountManagersPageState extends State<AccountManagersPage> {
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _create() async {
-    final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('إضافة مدير حساب جديد'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: nameCtrl,
-            decoration: const InputDecoration(labelText: 'الاسم', hintText: 'Mohamed Ali'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: emailCtrl,
-            decoration: const InputDecoration(labelText: 'البريد الإلكتروني', hintText: 'manager@domain.com'),
-            keyboardType: TextInputType.emailAddress,
-          ),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('إضافة')),
-        ],
-      ),
-    );
-    if (result != true || nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) return;
+  Future<void> _showForm({Map<String, dynamic>? existing}) async {
+    final nameCtrl = TextEditingController(text: existing?['name'] as String? ?? '');
+    final emailCtrl = TextEditingController(text: existing?['email'] as String? ?? '');
+    final phoneCtrl = TextEditingController(text: existing?['phone'] as String? ?? '');
+    final passwordCtrl = TextEditingController();
+    bool autoPassword = existing == null;
+    bool isEdit = existing != null;
 
-    try {
-      final res = await _api.post('/account-managers', {
-        'name': nameCtrl.text.trim(),
-        'email': emailCtrl.text.trim(),
-      });
-      final creds = res['credentials'] as Map<String, dynamic>?;
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('تم إنشاء المدير'),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('البريد: ${creds?['email'] ?? ''}'),
-            const SizedBox(height: 4),
-            Text('كلمة المرور: ${creds?['password'] ?? ''}'),
-          ]),
-          actions: [
-            ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('حسناً')),
-          ],
-        ),
-      );
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل إنشاء المدير')));
-    }
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        bool saving = false;
+        String? errorMsg;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            title: Text(isEdit ? 'تعديل مدير' : 'إضافة مدير حساب جديد'),
+            content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if (errorMsg != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: ShadColors.errorLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(errorMsg ?? '', style: const TextStyle(color: ShadColors.error, fontSize: 12)),
+                  ),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'الاسم', hintText: 'Mohamed Ali'),
+                  enabled: !saving,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailCtrl,
+                  decoration: const InputDecoration(labelText: 'البريد الإلكتروني', hintText: 'manager@domain.com'),
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !saving,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  decoration: const InputDecoration(labelText: 'رقم الهاتف', hintText: '+966501234567'),
+                  keyboardType: TextInputType.phone,
+                  enabled: !saving,
+                ),
+                if (!isEdit) ...[
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    const Text('كلمة المرور: ', style: TextStyle(fontSize: 14)),
+                    const Spacer(),
+                    FilterChip(
+                      label: const Text('تلقائي', style: TextStyle(fontSize: 12)),
+                      selected: autoPassword,
+                      onSelected: saving ? null : (_) => setDialogState(() => autoPassword = true),
+                    ),
+                    const SizedBox(width: 8),
+                    FilterChip(
+                      label: const Text('يدوي', style: TextStyle(fontSize: 12)),
+                      selected: !autoPassword,
+                      onSelected: saving ? null : (_) => setDialogState(() => autoPassword = false),
+                    ),
+                  ]),
+                  if (!autoPassword) ...[
+                    const SizedBox(height: 12),
+                    PasswordField(controller: passwordCtrl),
+                  ],
+                ],
+                if (isEdit) ...[
+                  const SizedBox(height: 12),
+                  PasswordField(
+                    controller: passwordCtrl,
+                    labelText: 'كلمة المرور الجديدة',
+                    hintText: 'اتركه فارغاً لعدم التغيير',
+                    required: false,
+                  ),
+                ],
+              ]),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(ctx),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty) {
+                          setDialogState(() => errorMsg = 'الاسم والبريد الإلكتروني مطلوبان');
+                          return;
+                        }
+                        setDialogState(() { saving = true; errorMsg = null; });
+                        try {
+                          if (isEdit) {
+                            final payload = <String, dynamic>{
+                              'name': nameCtrl.text.trim(),
+                              'email': emailCtrl.text.trim(),
+                              'phone': phoneCtrl.text.trim(),
+                            };
+                            if (passwordCtrl.text.trim().isNotEmpty) {
+                              payload['password'] = passwordCtrl.text.trim();
+                            }
+                            await _api.put('/account-managers/${existing['id']}', payload);
+                          } else {
+                            final payload = <String, dynamic>{
+                              'name': nameCtrl.text.trim(),
+                              'email': emailCtrl.text.trim(),
+                              'phone': phoneCtrl.text.trim(),
+                            };
+                            if (!autoPassword) {
+                              payload['password'] = passwordCtrl.text.trim();
+                            }
+                            await _api.post('/account-managers', payload);
+                          }
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          _load();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(isEdit ? 'تم تحديث المدير' : 'تم إنشاء المدير'),
+                          ));
+                        } catch (e) {
+                          final msg = e is ValidationException || e is AuthException || e is ServerException
+                              ? e.toString()
+                              : (isEdit ? 'فشل تحديث المدير' : 'فشل إنشاء المدير');
+                          setDialogState(() { saving = false; errorMsg = msg; });
+                        }
+                      },
+                child: saving
+                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                    : Text(isEdit ? 'تحديث' : 'إضافة'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _delete(int id, String name) async {
@@ -123,7 +211,7 @@ class _AccountManagersPageState extends State<AccountManagersPage> {
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _create),
+          IconButton(icon: const Icon(Icons.add), onPressed: () => _showForm()),
         ],
       ),
       body: _loading
@@ -146,7 +234,7 @@ class _AccountManagersPageState extends State<AccountManagersPage> {
                   const Text('اضغط على + لإضافة مدير جديد', style: TextStyle(fontSize: 14, color: ShadColors.textSecondary)),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
-                    onPressed: _create,
+                    onPressed: () => _showForm(),
                     icon: const Icon(Icons.person_add, size: 18),
                     label: const Text('إضافة مدير'),
                   ),
@@ -163,6 +251,7 @@ class _AccountManagersPageState extends State<AccountManagersPage> {
                     final email = m['email'] as String? ?? '';
                     final mgrId = m['id'] as int;
                     final clientCount = m['managed_clients_count'] as int? ?? 0;
+                    final phone = m['phone'] as String?;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -177,11 +266,21 @@ class _AccountManagersPageState extends State<AccountManagersPage> {
                             style: const TextStyle(color: ShadColors.textPrimary, fontWeight: FontWeight.bold, fontFamily: 'Archivo')),
                         ),
                         title: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
-                        subtitle: Text('$email · $clientCount عميل', style: TextStyle(fontSize: 11, color: ShadColors.textSecondary, fontFamily: 'Archivo')),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: ShadColors.error),
-                          onPressed: () => _delete(mgrId, name),
-                        ),
+                        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('$email · $clientCount عميل', style: TextStyle(fontSize: 11, color: ShadColors.textSecondary, fontFamily: 'Archivo')),
+                          if (phone != null && phone.isNotEmpty)
+                            Text(phone, style: TextStyle(fontSize: 10, color: ShadColors.textDisabled, fontFamily: 'Archivo')),
+                        ]),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20, color: ShadColors.gold),
+                            onPressed: () => _showForm(existing: m),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20, color: ShadColors.error),
+                            onPressed: () => _delete(mgrId, name),
+                          ),
+                        ]),
                       ),
                     );
                   },

@@ -13,16 +13,23 @@ export default function ContractDetailModal({ contract, wsId, onClose, onAction,
 }) {
   const canAct = contract.status === 'sent';
   const [uploading, setUploading] = useState<Record<number, boolean>>({});
+  const [error, setError] = useState('');
 
   const uploadDoc = async (docId: number, file: File) => {
     setUploading((prev) => ({ ...prev, [docId]: true }));
-    const form = new FormData();
-    form.append('file', file);
-    form.append('contract_id', String(contract.id));
-    form.append('contract_required_document_id', String(docId));
-    const { data } = await api.post(`/workspaces/${wsId}/files`, form).catch(() => ({ data: null }));
-    if (data) onUpload();
-    setUploading((prev) => ({ ...prev, [docId]: false }));
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('contract_id', String(contract.id));
+      form.append('contract_required_document_id', String(docId));
+      const { data } = await api.post(`/workspaces/${wsId}/files`, form);
+      if (data) onUpload();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || 'فشل رفع المستند');
+    } finally {
+      setUploading((prev) => ({ ...prev, [docId]: false }));
+    }
   };
 
   const docs = contract.required_documents || [];
@@ -97,6 +104,7 @@ export default function ContractDetailModal({ contract, wsId, onClose, onAction,
                 </div>
               );
             })}
+            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           </div>
         )}
 
@@ -110,17 +118,13 @@ export default function ContractDetailModal({ contract, wsId, onClose, onAction,
               className="flex-1 bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700">
               ✎ طلب تعديل
             </button>
-            <button onClick={() => onAction('rejected')}
-              className="flex-1 bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700">
-              ✘ رفض
-            </button>
           </div>
         )}
 
         {!canAct && contract.status !== 'draft' && contract.status !== 'archived' && (
           <p className="mt-4 text-sm text-zinc-400 text-center">
             {contract.status === 'client_approved' ? 'تمت موافقتك على هذا العقد' :
-             contract.status === 'client_rejected' ? 'قمت برفض هذا العقد' :
+
              contract.status === 'edit_requested' ? 'قمت بطلب تعديل العقد' :
              contract.status === 'company_approved' ? 'تم اعتماد العقد من الشركة' :
              contract.status === 'completed' ? 'العقد مكتمل' : ''}

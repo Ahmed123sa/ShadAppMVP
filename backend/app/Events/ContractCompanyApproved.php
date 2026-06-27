@@ -12,9 +12,11 @@ class ContractCompanyApproved
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public Contract $contract;
+    public bool $fromPaymentReview;
 
-    public function __construct(Contract $contract)
+    public function __construct(Contract $contract, bool $fromPaymentReview = false)
     {
         $this->contract = $contract;
+        $this->fromPaymentReview = $fromPaymentReview;
     }
 }

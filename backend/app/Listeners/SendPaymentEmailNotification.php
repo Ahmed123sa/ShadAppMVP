@@ -6,7 +6,6 @@ use App\Events\PaymentCreated;
 use App\Events\PaymentReviewed;
 use App\Mail\PaymentCreatedMail;
 use App\Mail\PaymentApprovedMail;
-use App\Mail\PaymentRejectedMail;
 use App\Models\User;
 use App\Notifications\PaymentCreatedNotification;
 use App\Notifications\PaymentReviewedNotification;
@@ -53,9 +52,7 @@ class SendPaymentEmailNotification
     {
         $payment = $event->payment;
         $client = $payment->client;
-        $mail = $event->action === 'approved'
-            ? new PaymentApprovedMail($payment)
-            : new PaymentRejectedMail($payment);
+        $mail = new PaymentApprovedMail($payment);
 
         if ($client?->email) {
             try {
@@ -67,7 +64,9 @@ class SendPaymentEmailNotification
 
         if ($client) {
             try {
-                $client->notify(new PaymentReviewedNotification($payment, $event->action));
+                $workspace = $payment->workspace;
+                $activated = $workspace && $workspace->status === 'active';
+                $client->notify(new PaymentReviewedNotification($payment, $event->action, $activated));
             } catch (\Exception $e) {
                 Log::warning('Failed to send payment reviewed notification: ' . $e->getMessage());
             }

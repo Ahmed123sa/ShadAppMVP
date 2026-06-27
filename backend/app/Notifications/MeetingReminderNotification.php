@@ -19,7 +19,7 @@ class MeetingReminderNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
@@ -43,5 +43,9 @@ class MeetingReminderNotification extends Notification
                 'id' => (string) $this->meeting->id,
             ],
         ];
+    }
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

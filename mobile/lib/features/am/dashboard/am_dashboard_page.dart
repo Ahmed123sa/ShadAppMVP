@@ -1,9 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
 import '../../../core/locale_provider.dart';
+import '../../../core/reverb_service.dart';
 import '../../../core/widgets/shad_logo.dart';
 import 'package:shadapp_client/generated/app_localizations.dart';
 
@@ -17,26 +17,44 @@ class AmDashboardPage extends StatefulWidget {
 class _AmDashboardPageState extends State<AmDashboardPage> {
   final _api = ApiClient();
   final _searchController = TextEditingController();
+  final _isSA = ApiClient().role == 'super_admin';
   List<dynamic> _allClients = [];
   List<dynamic> _filteredClients = [];
+  List<dynamic> _allManagers = [];
+  List<dynamic> _pendingPayments = [];
   bool _loading = true;
   int _unreadNotifs = 0;
-  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
     _searchController.addListener(_filter);
-    _startRefresh();
+    _setupRealtimeNotifications();
+  }
+
+  void _setupRealtimeNotifications() {
+    final uid = _api.userId;
+    if (uid == null) return;
+    final reverb = ReverbService();
+    reverb.connectForUser(uid);
+    reverb.onNotificationReceived = () {
+      _loadNotifs();
+      _load();
+    };
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final data = await _api.get('/clients');
-      _allClients = data['clients'] as List<dynamic>? ?? [];
-      _filter();
+      if (_isSA) {
+        final data = await _api.get('/account-managers');
+        _allManagers = data['managers'] as List<dynamic>? ?? [];
+      } else {
+        final data = await _api.get('/clients');
+        _allClients = data['clients'] as List<dynamic>? ?? [];
+        _filter();
+      }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -60,11 +78,6 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       _unreadNotifs = (data['unread_count'] as num? ?? 0).toInt();
     } catch (_) {}
     if (mounted) setState(() {});
-  }
-
-  void _startRefresh() {
-    _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) { _load(); _loadNotifs(); });
   }
 
   Future<void> _logout() async {
@@ -145,8 +158,24 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => _PendingListSheet(
         title: AppLocalizations.of(context)!.pendingApprovalContracts,
-        fetch: () => _fetchAllContracts('sent'),
+        fetch: () => _fetchAllContracts(['sent', 'client_approved']),
       ),
+    );
+  }
+
+  Future<void> _showPendingPayments() async {
+    try {
+      final data = await _api.get('/payments/pending');
+      _pendingPayments = data['payments'] as List<dynamic>? ?? [];
+    } catch (_) {
+      _pendingPayments = [];
+    }
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => _PendingPaymentsSheet(payments: _pendingPayments),
     );
   }
 
@@ -162,7 +191,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
     );
   }
 
-  Future<List<Map<String, dynamic>>> _fetchAllContracts(String status) async {
+  Future<List<Map<String, dynamic>>> _fetchAllContracts(List<String> statuses) async {
     final results = <Map<String, dynamic>>[];
     try {
       final data = await _api.get('/clients');
@@ -170,18 +199,21 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       for (final client in clients) {
         final ws = client['workspace'] as Map<String, dynamic>?;
         if (ws == null) continue;
-        final wsId = ws['id'];
-        final contractsData = await _api.get('/workspaces/$wsId/contracts');
-        final contracts = contractsData['contracts'] as List<dynamic>? ?? [];
-        for (final c in contracts) {
-          if (c['status'] == status) {
-            results.add({
-              'title': c['title'] ?? '',
-              'value': c['value'] ?? 0,
-              'company': client['company_name'] ?? '',
-              'client': client,
-            });
+        try {
+          final contractsData = await _api.get('/workspaces/${ws['id']}/contracts');
+          final contracts = contractsData['contracts'] as List<dynamic>? ?? [];
+          for (final c in contracts) {
+            if (statuses.contains(c['status'])) {
+              results.add({
+                'title': c['title'] ?? '',
+                'value': c['value'] ?? 0,
+                'company': client['company_name'] ?? '',
+                'client': client,
+              });
+            }
           }
+        } catch (_) {
+          continue;
         }
       }
     } catch (_) {}
@@ -196,17 +228,20 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
       for (final client in clients) {
         final ws = client['workspace'] as Map<String, dynamic>?;
         if (ws == null) continue;
-        final wsId = ws['id'];
-        final approvalsData = await _api.get('/workspaces/$wsId/approvals');
-        final approvals = approvalsData['approvals'] as List<dynamic>? ?? [];
-        for (final a in approvals) {
-          if (a['status'] == 'pending') {
-            results.add({
-              'title': a['title'] ?? '',
-              'company': client['company_name'] ?? '',
-              'client': client,
-            });
+        try {
+          final approvalsData = await _api.get('/workspaces/${ws['id']}/approvals');
+          final approvals = approvalsData['approvals'] as List<dynamic>? ?? [];
+          for (final a in approvals) {
+            if (a['status'] == 'pending') {
+              results.add({
+                'title': a['title'] ?? '',
+                'company': client['company_name'] ?? '',
+                'client': client,
+              });
+            }
           }
+        } catch (_) {
+          continue;
         }
       }
     } catch (_) {}
@@ -234,7 +269,6 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -272,7 +306,18 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
-              children: [
+              children: _isSA ? [
+                _buildQuickStats(),
+                const SizedBox(height: 16),
+                _buildFeaturedCards(),
+                const SizedBox(height: 16),
+                Text('Account Managers / مدراء الحسابات', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.5, color: ShadColors.textSecondary, fontFamily: 'Archivo')),
+                const SizedBox(height: 8),
+                if (_allManagers.isNotEmpty)
+                  ..._allManagers.map((m) => _managerCard(m)),
+                if (_allManagers.isEmpty)
+                  _buildEmptyState(),
+              ] : [
                 _buildSearchBar(),
                 const SizedBox(height: 16),
                 _buildQuickStats(),
@@ -317,6 +362,25 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
 
   Widget _buildQuickStats() {
     final loc2 = AppLocalizations.of(context)!;
+    final isSA = _api.role == 'super_admin';
+    if (isSA) {
+      final totalManagers = _allManagers.length;
+      final totalClients = _allManagers.fold<int>(0, (sum, m) => sum + ((m['managed_clients_count'] as int? ?? 0)));
+      final stats = [
+        ('إجمالي المديرين', '$totalManagers', Icons.admin_panel_settings, ShadColors.sent),
+        ('إجمالي العملاء', '$totalClients', Icons.people, ShadColors.companyApproved),
+      ];
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: stats.map((s) {
+          final (label, value, icon, color) = s;
+          return Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: _statCard(label, value, icon, color),
+          );
+        }).toList()),
+      );
+    }
     final totalClients = _allClients.length;
     final activeWorkspaces = _allClients.where((c) {
       final ws = c['workspace'] as Map<String, dynamic>?;
@@ -366,14 +430,68 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
     );
   }
 
+  Future<void> _showAllContracts() async {
+    try {
+      final data = await _api.get('/all-contracts');
+      final contracts = data['contracts'] as List<dynamic>? ?? [];
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (_) => _AllContractsSheet(contracts: contracts),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تحميل العقود')));
+    }
+  }
+
+  Future<void> _showAllMeetings() async {
+    try {
+      final data = await _api.get('/all-meetings');
+      final meetings = data['meetings'] as List<dynamic>? ?? [];
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (_) => _AllMeetingsSheet(meetings: meetings),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تحميل الاجتماعات')));
+    }
+  }
+
   Widget _buildFeaturedCards() {
     final loc2 = AppLocalizations.of(context)!;
     final isSA = _api.role == 'super_admin';
     return Column(children: [
+      if (isSA)
+        SizedBox(
+          width: double.infinity,
+          child: _featuredCard(Icons.payments, 'مدفوعات معلقة', _showPendingPayments),
+        ),
+      if (isSA)
+        const SizedBox(height: 8),
+      if (isSA)
+        SizedBox(
+          width: double.infinity,
+          child: _featuredCard(Icons.description, 'كل العقود', _showAllContracts),
+        ),
+      if (isSA)
+        const SizedBox(height: 8),
+      if (isSA)
+        SizedBox(
+          width: double.infinity,
+          child: _featuredCard(Icons.videocam, 'كل الاجتماعات', _showAllMeetings),
+        ),
+      if (isSA)
+        const SizedBox(height: 8),
       Row(children: [
         if (isSA)
           Expanded(child: _featuredCard(Icons.manage_accounts, 'إدارة المديرين', () => context.push('/am/managers'))),
-        Expanded(child: _featuredCard(Icons.person_add, loc2.createNewClient, () async { await context.push('/am/clients/create'); _load(); })),
+        if (!isSA)
+          Expanded(child: _featuredCard(Icons.person_add, loc2.createNewClient, () async { await context.push('/am/clients/create'); _load(); })),
         const SizedBox(width: 8),
         Expanded(child: _featuredCard(Icons.pending_actions, loc2.pendingApprovalContracts, _showPendingContracts)),
       ]),
@@ -389,10 +507,11 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
         child: _featuredCard(Icons.history, 'سجل النشاطات', () => context.push('/am/audit-logs')),
       ),
       const SizedBox(height: 8),
-      SizedBox(
-        width: double.infinity,
-        child: _featuredCard(Icons.add_circle, loc2.createMeeting, _createMeeting),
-      ),
+      if (!isSA)
+        SizedBox(
+          width: double.infinity,
+          child: _featuredCard(Icons.add_circle, loc2.createMeeting, _createMeeting),
+        ),
       const SizedBox(height: 8),
       SizedBox(
         width: double.infinity,
@@ -418,6 +537,76 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
             const SizedBox(width: 8),
             Expanded(child: Text(label, style: const TextStyle(fontSize: 14, color: ShadColors.textPrimary, fontFamily: 'Archivo'), overflow: TextOverflow.ellipsis)),
             const Icon(Icons.chevron_left, size: 18, color: ShadColors.textDisabled),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _showManagerClients(Map<String, dynamic> manager) async {
+    final managerId = manager['id'] as int;
+    try {
+      final data = await _api.get('/account-managers/$managerId');
+      final clients = data['clients'] as List<dynamic>? ?? [];
+      if (!mounted) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => _ManagerClientsSheet(
+          managerName: manager['name'] as String? ?? '',
+          clients: clients,
+          onClientTap: (client) {
+            Navigator.pop(ctx);
+            _openClient(client);
+          },
+        ),
+      );
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تحميل العملاء')));
+    }
+  }
+
+  Widget _managerCard(Map<String, dynamic> manager) {
+    final name = manager['name'] as String? ?? '';
+    final email = manager['email'] as String? ?? '';
+    final clientCount = manager['managed_clients_count'] as int? ?? 0;
+    final avatarUrl = manager['avatar_url'] as String?;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: ShadColors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ShadColors.cardBorder),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _showManagerClients(manager),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: ShadColors.cardBorder,
+              backgroundImage: avatarUrl != null ? NetworkImage(_api.resolveFileUrl(avatarUrl)) : null,
+              child: avatarUrl == null ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 18, color: ShadColors.textSecondary)) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
+                const SizedBox(height: 2),
+                Text(email, style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary, fontFamily: 'Archivo')),
+              ]),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: ShadColors.sent.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text('$clientCount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ShadColors.sent, fontFamily: 'PlayfairDisplay')),
+            ),
           ]),
         ),
       ),
@@ -491,32 +680,19 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
                 _statusChip(wsActive ? '✅ تم' : '⏳ لم يتم', wsActive ? ShadColors.success : ShadColors.textDisabled),
               ],
             ),
-            const SizedBox(height: 8),
             Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              InkWell(
-                onTap: () async {
+              IconButton(
+                icon: const Icon(Icons.chevron_left, size: 22, color: ShadColors.textSecondary),
+                onPressed: () async {
                   final changed = await context.push<bool>('/am/clients/${client['id']}');
                   if (changed == true) _load();
                 },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.edit, size: 14, color: ShadColors.gold),
-                    const SizedBox(width: 4),
-                    const Text('تفاصيل', style: TextStyle(fontSize: 11, color: ShadColors.gold, fontFamily: 'Archivo')),
-                  ]),
-                ),
+                tooltip: 'تفاصيل',
               ),
-              InkWell(
-                onTap: () => _deleteClient(clientId, name),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.delete_outline, size: 14, color: ShadColors.error),
-                    const SizedBox(width: 4),
-                    const Text('حذف', style: TextStyle(fontSize: 11, color: ShadColors.error, fontFamily: 'Archivo')),
-                  ]),
-                ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20, color: ShadColors.error),
+                onPressed: () => _deleteClient(clientId, name),
+                tooltip: 'حذف',
               ),
             ]),
           ]),
@@ -539,6 +715,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
 
   Widget _buildEmptyState() {
     final loc2 = AppLocalizations.of(context)!;
+    final isSA = _api.role == 'super_admin';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(children: [
@@ -548,11 +725,12 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
         const SizedBox(height: 8),
         Text(loc2.noClientsSubtitle, style: TextStyle(fontSize: 14, color: ShadColors.textSecondary, fontFamily: 'Archivo')),
         const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: () async { final created = await context.push<bool>('/am/clients/create'); if (created == true) _load(); },
-          icon: const Icon(Icons.person_add, size: 18),
-          label: Text(loc2.createClient),
-        ),
+        if (!isSA)
+          ElevatedButton.icon(
+            onPressed: () async { final created = await context.push<bool>('/am/clients/create'); if (created == true) _load(); },
+            icon: const Icon(Icons.person_add, size: 18),
+            label: Text(loc2.createClient),
+          ),
       ]),
     );
   }
@@ -627,12 +805,239 @@ class _PendingListSheetState extends State<_PendingListSheet> {
                         leading: const Icon(Icons.circle, size: 8, color: ShadColors.warning),
                         title: Text(item['title'] ?? '', style: const TextStyle(fontSize: 14, color: ShadColors.textPrimary)),
                         subtitle: Text(item['company'] ?? '', style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                        onTap: () {
+                          final client = item['client'] as Map<String, dynamic>?;
+                          final clientId = client?['id'];
+                          if (clientId != null) {
+                            Navigator.pop(context);
+                            context.push('/am/clients/$clientId');
+                          }
+                        },
                       );
                     },
                   ),
           ),
         ]),
       ),
+    );
+  }
+}
+
+class _ManagerClientsSheet extends StatelessWidget {
+  final String managerName;
+  final List<dynamic> clients;
+  final void Function(Map<String, dynamic> client) onClientTap;
+  const _ManagerClientsSheet({required this.managerName, required this.clients, required this.onClientTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Text('عملاء $managerName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
+          const Spacer(),
+          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        ]),
+        const Divider(),
+        if (clients.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('لا يوجد عملاء', style: TextStyle(color: ShadColors.textSecondary))),
+          )
+        else
+          Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: clients.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final c = clients[i];
+                final ws = c['workspace'] as Map<String, dynamic>?;
+                return ListTile(
+                  leading: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: ShadColors.cardBorder,
+                    child: Text((c['company_name'] as String? ?? '')[0].toUpperCase(), style: const TextStyle(color: ShadColors.textSecondary)),
+                  ),
+                  title: Text(c['company_name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text(c['contact_person'] ?? '', style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: ws?['status'] == 'active' ? ShadColors.success.withAlpha(25) : ShadColors.cardBorder,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(ws?['status'] == 'active' ? 'نشط' : 'غير مفعل', style: TextStyle(fontSize: 10, color: ws?['status'] == 'active' ? ShadColors.success : ShadColors.textSecondary)),
+                  ),
+                  onTap: () => onClientTap(c),
+                );
+              },
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _PendingPaymentsSheet extends StatelessWidget {
+  final List<dynamic> payments;
+  const _PendingPaymentsSheet({required this.payments});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('مدفوعات معلقة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
+          const Spacer(),
+          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        ]),
+        const Divider(),
+        if (payments.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('لا توجد مدفوعات معلقة', style: TextStyle(color: ShadColors.textSecondary))),
+          )
+        else
+          Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: payments.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final p = payments[i];
+                final client = p['workspace']?['client'] as Map<String, dynamic>?;
+                final amount = (p['amount'] as num?)?.toDouble() ?? 0;
+                return ListTile(
+                  leading: const Icon(Icons.payments, size: 24, color: ShadColors.warning),
+                  title: Text(client?['company_name'] as String? ?? 'عميل', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text('${p['currency'] ?? 'SAR'} ${amount.toStringAsFixed(2)} • ${p['method_type'] ?? ''}', style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  trailing: Text(p['created_at'] != null ? _formatDate(p['created_at']) : '', style: const TextStyle(fontSize: 11, color: ShadColors.textSecondary)),
+                );
+              },
+            ),
+          ),
+      ]),
+    );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final dt = DateTime.parse(dateStr);
+      return '${dt.year}/${dt.month}/${dt.day}';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+class _AllContractsSheet extends StatelessWidget {
+  final List<dynamic> contracts;
+  const _AllContractsSheet({required this.contracts});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('كل العقود', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
+          const Spacer(),
+          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        ]),
+        const Divider(),
+        if (contracts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('لا توجد عقود', style: TextStyle(color: ShadColors.textSecondary))),
+          )
+        else
+          Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: contracts.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final c = contracts[i];
+                final client = c['workspace']?['client'] as Map<String, dynamic>?;
+                final status = c['status'] as String? ?? '';
+                final statusColor = status == 'completed' ? ShadColors.success : status == 'sent' || status == 'client_approved' ? ShadColors.warning : ShadColors.textSecondary;
+                final statusLabel = status == 'draft' ? 'مسودة' : status == 'sent' ? 'مرسل' : status == 'client_approved' ? 'موافقة العميل' : status == 'company_approved' ? 'اعتماد الشركة' : status == 'completed' ? 'مكتمل' : status;
+                return ListTile(
+                  leading: const Icon(Icons.description, size: 24, color: ShadColors.gold),
+                  title: Text(c['title'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text(client?['company_name'] as String? ?? '', style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: statusColor.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: Text(statusLabel, style: TextStyle(fontSize: 10, color: statusColor)),
+                  ),
+                );
+              },
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _AllMeetingsSheet extends StatelessWidget {
+  final List<dynamic> meetings;
+  const _AllMeetingsSheet({required this.meetings});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('كل الاجتماعات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: ShadColors.textPrimary, fontFamily: 'Archivo')),
+          const Spacer(),
+          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        ]),
+        const Divider(),
+        if (meetings.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('لا توجد اجتماعات', style: TextStyle(color: ShadColors.textSecondary))),
+          )
+        else
+          Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: meetings.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final m = meetings[i];
+                final client = m['workspace']?['client'] as Map<String, dynamic>?;
+                final status = m['status'] as String? ?? '';
+                final statusColor = status == 'completed' ? ShadColors.success : status == 'scheduled' ? ShadColors.sent : ShadColors.textSecondary;
+                final statusLabel = status == 'scheduled' ? 'مجدول' : status == 'completed' ? 'مكتمل' : status == 'cancelled' ? 'ملغي' : status;
+                String? dateStr;
+                try {
+                  final dt = DateTime.parse(m['scheduled_at'] ?? '');
+                  dateStr = '${dt.year}/${dt.month}/${dt.day}';
+                } catch (_) {}
+                return ListTile(
+                  leading: const Icon(Icons.videocam, size: 24, color: ShadColors.gold),
+                  title: Text(m['title'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  subtitle: Text('${client?['company_name'] ?? ''} • ${dateStr ?? ''}', style: const TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: statusColor.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: Text(statusLabel, style: TextStyle(fontSize: 10, color: statusColor)),
+                  ),
+                );
+              },
+            ),
+          ),
+      ]),
     );
   }
 }

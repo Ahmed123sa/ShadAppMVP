@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { useTranslations } from 'next-intl';
@@ -21,6 +21,7 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const u = getUser();
@@ -54,6 +55,7 @@ export default function ProfilePage() {
       if (avatar) form.append('avatar', avatar);
       form.append('name', displayName);
       const { data } = await api.post('/auth/me', form);
+      if (data.user?.avatar_url) setAvatarPreview(resolveFileUrl(data.user.avatar_url));
       localStorage.setItem('user', JSON.stringify(data.user));
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -83,10 +85,11 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-          <label className="cursor-pointer bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+          <button onClick={() => avatarInputRef.current?.click()} type="button"
+            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
             {t('change_avatar')}
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          </label>
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 
         <div className="space-y-1">

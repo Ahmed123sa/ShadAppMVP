@@ -75,7 +75,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:8',
+            'password' => 'required|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
         ]);
 
         $user = User::create([
@@ -101,7 +101,7 @@ class AuthController extends Controller
     public function sign(Request $request): JsonResponse
     {
         if ($request->hasFile('signature_image')) {
-            $request->validate(['signature_image' => 'required|image|mimes:png|max:2048']);
+            $request->validate(['signature_image' => 'required|image|mimes:png,jpg,jpeg|max:5120']);
             $path = $request->file('signature_image')->store('signatures', 'public');
             $signatureData = Storage::url($path);
         } else {
@@ -115,6 +115,16 @@ class AuthController extends Controller
             'signed_at' => now(),
         ]);
 
+        return response()->json(['user' => $user->fresh()]);
+    }
+
+    public function deleteSign(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->update([
+            'signature_data' => null,
+            'signed_at' => null,
+        ]);
         return response()->json(['user' => $user->fresh()]);
     }
 

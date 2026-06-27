@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function ClientsPage() {
@@ -12,6 +13,7 @@ export default function ClientsPage() {
   const [newCreds, setNewCreds] = useState<any>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ company_name: '', contact_person: '', phone: '', notes: '' });
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     api.get('/clients').then(({ data }) => setClients(data.clients)).catch(() => {}).finally(() => setLoading(false));
@@ -19,11 +21,16 @@ export default function ClientsPage() {
 
   const createClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data } = await api.post('/clients', form);
-    setClients((prev) => [data.client, ...prev]);
-    setNewCreds(data.credentials);
-    setShowCreate(false);
-    setForm({ company_name: '', contact_person: '', email: '', phone: '', contract_value: '', notes: '', send_email: true });
+    setCreateError('');
+    try {
+      const { data } = await api.post('/clients', form);
+      setClients((prev) => [data.client, ...prev]);
+      setNewCreds(data.credentials);
+      setShowCreate(false);
+      setForm({ company_name: '', contact_person: '', email: '', phone: '', contract_value: '', notes: '', send_email: true });
+    } catch (err: any) {
+      setCreateError(err?.response?.data?.message || 'فشل إنشاء العميل');
+    }
   };
 
   const startEdit = (c: any) => {
@@ -44,13 +51,15 @@ export default function ClientsPage() {
 
   if (loading) return <div className="text-center py-20 text-zinc-500">جاري التحميل...</div>;
 
+  const isSA = getUser()?.role === 'super_admin';
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">العملاء</h2>
-        <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+        {!isSA && <button onClick={() => setShowCreate(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
           + عميل جديد
-        </button>
+        </button>}
       </div>
 
       {newCreds && (
@@ -63,6 +72,7 @@ export default function ClientsPage() {
 
       {showCreate && (
         <form onSubmit={createClient} className="bg-white rounded-xl shadow-sm border p-6 mb-6 space-y-4">
+          {createError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{createError}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input className="border rounded-lg px-4 py-2 text-sm" placeholder="اسم الشركة" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />
             <input className="border rounded-lg px-4 py-2 text-sm" placeholder="الشخص المسؤول" value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} required />
@@ -118,8 +128,8 @@ export default function ClientsPage() {
                     </td>
                     <td className="p-4">{client.workspace ? (client.workspace.status === 'active' ? '🟢 نشط' : '⏳ غير مفعل') : '—'}</td>
                     <td className="p-4 text-left whitespace-nowrap">
-                      <button onClick={() => startEdit(client)} className="text-xs text-blue-600 hover:underline ml-2">تعديل</button>
-                      <button onClick={() => deleteClient(client.id)} className="text-xs text-red-500 hover:underline">حذف</button>
+                      {!isSA && <button onClick={() => startEdit(client)} className="text-xs text-blue-600 hover:underline ml-2">تعديل</button>}
+                      {!isSA && <button onClick={() => deleteClient(client.id)} className="text-xs text-red-500 hover:underline">حذف</button>}
                     </td>
                   </>
                 )}

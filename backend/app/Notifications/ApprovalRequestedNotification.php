@@ -19,7 +19,7 @@ class ApprovalRequestedNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
@@ -42,5 +42,9 @@ class ApprovalRequestedNotification extends Notification
                 'id' => (string) $this->approval->id,
             ],
         ];
+    }
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

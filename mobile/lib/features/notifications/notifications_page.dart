@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 
@@ -46,9 +47,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _load();
   }
 
+  void _navigateToNotification(Map<String, dynamic> data, String id) {
+    if (!mounted) return;
+    final role = _api.role;
+    final clientId = data['client_id'];
+    final route = _resolveRoute(role, data, clientId);
+    if (route != null) context.push(route);
+  }
+
+  String? _resolveRoute(String? role, Map<String, dynamic> data, dynamic clientId) {
+    final isAdmin = role == 'account_manager' || role == 'super_admin';
+    if (clientId != null && clientId.toString().isNotEmpty) {
+      if (isAdmin) return '/am/clients/$clientId';
+      return '/dashboard';
+    }
+    return isAdmin ? '/am/dashboard' : '/dashboard';
+  }
+
   Future<void> _delete(String id) async {
     await _api.delete('/notifications/$id');
-    _load();
+    if (mounted) _load();
   }
 
   Color _colorForType(String? type) {
@@ -165,7 +183,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             trailing: isUnread
                                 ? Container(width: 10, height: 10, decoration: BoxDecoration(color: ShadColors.primary, shape: BoxShape.circle))
                                 : null,
-                            onTap: isUnread ? () => _markAsRead(id) : null,
+                            onTap: () {
+                              if (isUnread) _markAsRead(id);
+                              _navigateToNotification(data, id);
+                            },
                           ),
                         ),
                       );

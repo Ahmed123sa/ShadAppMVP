@@ -41,7 +41,6 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
   Future<void> _respond(int id, String action) async {
     final labels = {
       'approved': AppLocalizations.of(context)!.approve,
-      'rejected': AppLocalizations.of(context)!.reject,
       'edit_requested': AppLocalizations.of(context)!.editRequested,
     };
     final confirm = await showDialog<bool>(
@@ -154,12 +153,6 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
                         onPressed: () => _respond(a['id'], 'approved'),
                         style: ElevatedButton.styleFrom(backgroundColor: ShadColors.success),
                         child: Text(AppLocalizations.of(context)!.approve),
-                      )),
-                      const SizedBox(width: 6),
-                      Expanded(child: OutlinedButton(
-                        onPressed: () => _respond(a['id'], 'rejected'),
-                        style: OutlinedButton.styleFrom(foregroundColor: ShadColors.error, side: const BorderSide(color: ShadColors.error)),
-                        child: Text(AppLocalizations.of(context)!.reject),
                       )),
                       const SizedBox(width: 6),
                       Expanded(child: TextButton(

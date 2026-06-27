@@ -103,11 +103,11 @@ class _ClientFilesPageState extends State<ClientFilesPage> {
     setState(() => _uploading = true);
     try {
       final fields = <String, dynamic>{};
-      if (definitionId != null) fields['definition_id'] = definitionId;
+      if (definitionId != null) fields['document_definition_id'] = definitionId;
       await _api.multipartPost('/workspaces/$wsId/files', fields, file: file);
       _load();
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل رفع الملف')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل رفع الملف: $e')));
     }
     if (mounted) setState(() => _uploading = false);
   }

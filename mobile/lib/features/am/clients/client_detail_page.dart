@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
+import '../../../core/widgets/password_field.dart';
 
 class ClientDetailPage extends StatefulWidget {
   final int clientId;
@@ -184,13 +185,11 @@ class _ClientDetailPageState extends State<ClientDetailPage> {
           const SizedBox(height: 8),
           Text('إعادة تعيين كلمة المرور', style: ShadTypography.cardTitle),
           const SizedBox(height: 8),
-          TextField(
+          PasswordField(
             controller: _passwordCtrl,
-            decoration: const InputDecoration(
-              labelText: 'كلمة مرور جديدة',
-              hintText: 'اتركه فارغاً إذا لم ترد التغيير',
-            ),
-            obscureText: true,
+            labelText: 'كلمة مرور جديدة',
+            hintText: 'اتركه فارغاً إذا لم ترد التغيير',
+            required: false,
           ),
           const SizedBox(height: 16),
 

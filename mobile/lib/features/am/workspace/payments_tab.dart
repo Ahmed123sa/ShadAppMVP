@@ -39,12 +39,12 @@ class _PaymentsTabState extends State<PaymentsTab> {
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _review(int id, String action) async {
+  Future<void> _review(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(action == 'approved' ? 'اعتماد الدفعة' : 'رفض الدفعة'),
-        content: Text(action == 'approved' ? 'هل أنت متأكد من اعتماد هذه الدفعة؟' : 'هل أنت متأكد من رفض هذه الدفعة؟'),
+        title: const Text('اعتماد الدفعة'),
+        content: const Text('هل أنت متأكد من اعتماد هذه الدفعة؟'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('تأكيد')),
@@ -53,13 +53,11 @@ class _PaymentsTabState extends State<PaymentsTab> {
     );
     if (confirm != true) return;
     try {
-      final data = await _api.post('/payments/$id/review', {'action': action});
+      final data = await _api.post('/payments/$id/review', {'action': 'approved'});
       if (mounted) {
         final wsActive = data['workspace']?['status'] == 'active';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(action == 'approved'
-              ? (wsActive ? '✅ تم اعتماد الدفعة — مساحة العمل نشطة' : '✅ تم اعتماد الدفعة — سيتم تفعيل مساحة العمل عند اكتمال الإجراءات')
-              : '❌ تم رفض الدفعة'),
+          content: Text(wsActive ? '✅ تم اعتماد الدفعة — مساحة العمل نشطة' : '✅ تم اعتماد الدفعة — سيتم تفعيل مساحة العمل عند اكتمال الإجراءات'),
         ));
         _load();
         widget.onWorkspaceUpdate?.call();
@@ -141,16 +139,11 @@ class _PaymentsTabState extends State<PaymentsTab> {
                     const SizedBox(height: 12),
                     Row(children: [
                       Expanded(child: ElevatedButton(
-                        onPressed: () => _review(p['id'], 'approved'),
+                        onPressed: () => _review(p['id']),
                         style: ElevatedButton.styleFrom(backgroundColor: ShadColors.success),
                         child: const Text('اعتماد'),
                       )),
-                      const SizedBox(width: 8),
-                      Expanded(child: OutlinedButton(
-                        onPressed: () => _review(p['id'], 'rejected'),
-                        style: OutlinedButton.styleFrom(foregroundColor: ShadColors.error, side: const BorderSide(color: ShadColors.error)),
-                        child: const Text('رفض'),
-                      )),
+
                     ]),
                   ],
                 ],

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { useParams, useRouter } from 'next/navigation';
 import type { Client } from '@/types';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -53,6 +54,7 @@ export default function ClientWorkspace() {
   if (loading) return <div className="py-20"><LoadingSkeleton message="جاري تحميل مساحة العمل..." /></div>;
   if (!client) return <EmptyState message="العميل غير موجود" />;
 
+  const isSA = getUser()?.role === 'super_admin';
   const wsId = client.workspace?.id;
 
   return (
@@ -88,9 +90,9 @@ export default function ClientWorkspace() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => router.push(`/dashboard/clients/${id}/settings`)} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</button>
-              <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:underline">تعديل</button>
-              <button onClick={() => setDeleteConfirm(true)} className="text-xs text-red-500 hover:underline">حذف</button>
+              {!isSA && <button onClick={() => router.push(`/dashboard/clients/${id}/settings`)} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</button>}
+              {!isSA && <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:underline">تعديل</button>}
+              {!isSA && <button onClick={() => setDeleteConfirm(true)} className="text-xs text-red-500 hover:underline">حذف</button>}
               <span className={`px-2.5 py-1 rounded-full text-xs ${client.workspace?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
                 {client.workspace?.status === 'active' ? 'مساحة عمل نشطة' : 'غير مفعلة'}
               </span>

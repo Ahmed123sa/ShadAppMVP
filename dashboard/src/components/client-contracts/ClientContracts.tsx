@@ -60,8 +60,6 @@ export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number
                   className="text-xs text-emerald-600 hover:underline">✔ موافقة</button>
                 <button onClick={() => setConfirmAction({ id: c.id, action: 'edit_requested' })}
                   className="text-xs text-amber-600 hover:underline">✎ طلب تعديل</button>
-                <button onClick={() => setConfirmAction({ id: c.id, action: 'rejected' })}
-                  className="text-xs text-red-600 hover:underline">✘ رفض</button>
               </>
             )}
             {c.status === 'company_approved' && (
@@ -95,11 +93,11 @@ export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number
 
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.action === 'approved' ? 'موافقة على العقد' : confirmAction?.action === 'edit_requested' ? 'طلب تعديل العقد' : 'رفض العقد'}
-        message={confirmAction?.action === 'approved' ? 'تأكيد الموافقة على هذا العقد؟' : confirmAction?.action === 'edit_requested' ? 'تأكيد طلب تعديل هذا العقد؟' : 'تأكيد رفض هذا العقد؟'}
-        confirmLabel={confirmAction?.action === 'approved' ? 'موافقة' : confirmAction?.action === 'edit_requested' ? 'طلب تعديل' : 'رفض'}
+        title={confirmAction?.action === 'approved' ? 'موافقة على العقد' : 'طلب تعديل العقد'}
+        message={confirmAction?.action === 'approved' ? 'تأكيد الموافقة على هذا العقد؟' : 'تأكيد طلب تعديل هذا العقد؟'}
+        confirmLabel={confirmAction?.action === 'approved' ? 'موافقة' : 'طلب تعديل'}
         cancelLabel="إلغاء"
-        variant={confirmAction?.action === 'rejected' ? 'danger' : 'default'}
+        variant="default"
         onConfirm={() => confirmAction && doAction(confirmAction.id, confirmAction.action)}
         onCancel={() => setConfirmAction(null)}
       />

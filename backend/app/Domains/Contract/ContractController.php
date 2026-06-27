@@ -7,6 +7,7 @@ use App\Models\ContractClause;
 use App\Models\ContractClauseTemplate;
 use App\Models\Workspace;
 use App\Models\AuditLog;
+use App\Models\User;
 use App\Events\ContractSent;
 use App\Events\ContractClientApproved;
 use App\Events\ContractCompanyApproved;
@@ -17,6 +18,21 @@ use Illuminate\Routing\Controller;
 
 class ContractController extends Controller
 {
+    public function allContracts(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user || $user->role !== 'super_admin') {
+            return response()->json(['message' => 'غير مصرح'], 403);
+        }
+
+        $contracts = Contract::with('workspace.client')
+            ->whereHas('workspace', fn($q) => $q->whereIn('manager_id', $user->managedAccounts()->pluck('id')))
+            ->latest()
+            ->get();
+
+        return response()->json(['contracts' => $contracts]);
+    }
+
     public function templates(): JsonResponse
     {
         $templates = ContractClauseTemplate::where('is_active', true)->orderBy('sort_order')->get();
@@ -30,6 +46,10 @@ class ContractController extends Controller
 
     public function store(Request $request, Workspace $workspace): JsonResponse
     {
+        if ($request->user() && $request->user()->role === 'super_admin') {
+            return response()->json(['message' => 'غير مصرح'], 403);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'value' => 'nullable|numeric|min:0',
@@ -175,9 +195,9 @@ class ContractController extends Controller
 
     public function clientAction(Request $request, Contract $contract): JsonResponse
     {
-        $request->validate(['action' => 'required|in:approved,rejected,edit_requested']);
+        $request->validate(['action' => 'required|in:approved,edit_requested']);
 
-        $status = $request->action === 'edit_requested' ? 'edit_requested' : 'client_' . $request->action;
+        $status = $request->action === 'edit_requested' ? 'edit_requested' : 'client_approved';
 
         $contract->update([
             'status' => $status,

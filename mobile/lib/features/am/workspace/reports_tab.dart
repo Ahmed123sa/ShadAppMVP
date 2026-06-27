@@ -18,6 +18,8 @@ class _ReportsTabState extends State<ReportsTab> {
   Map<String, dynamic>? _stats;
   List<dynamic> _logs = [];
   bool _loading = true;
+
+  double _toDouble(dynamic value) => num.tryParse(value?.toString() ?? '')?.toDouble() ?? 0;
   String? _error;
 
   @override
@@ -146,7 +148,7 @@ class _ReportsTabState extends State<ReportsTab> {
 
   Widget _contractsBarChart(Map<String, dynamic> data) {
     final statusOrder = ['draft', 'sent', 'client_approved', 'company_approved', 'completed', 'archived', 'client_rejected', 'edit_requested'];
-    final entries = statusOrder.where((s) => data.containsKey(s)).map((s) => MapEntry(s, (data[s] as num).toDouble())).toList();
+    final entries = statusOrder.where((s) => data.containsKey(s)).map((s) => MapEntry(s, _toDouble(data[s]))).toList();
     if (entries.isEmpty) return _emptyChart(loc: AppLocalizations.of(context)!);
     final maxY = entries.map((e) => e.value).reduce((a, b) => a > b ? a : b);
 
@@ -180,7 +182,7 @@ class _ReportsTabState extends State<ReportsTab> {
   Widget _paymentsLineChart(Map<String, dynamic> data) {
     final entries = data.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
     if (entries.isEmpty) return _emptyChart(loc: AppLocalizations.of(context)!);
-    final flatSpots = entries.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value.value as num).toDouble())).toList();
+    final flatSpots = entries.asMap().entries.map((e) => FlSpot(e.key.toDouble(), _toDouble(e.value.value))).toList();
 
     return LineChart(LineChartData(
       lineBarsData: [LineChartBarData(
@@ -212,19 +214,19 @@ class _ReportsTabState extends State<ReportsTab> {
   Widget _approvalPieChart(Map<String, dynamic> data) {
     final colors = [ShadColors.success, ShadColors.error, ShadColors.warning];
     final labels = ['approved', 'rejected', 'pending'];
-    final entries = labels.where((k) => data.containsKey(k) && (data[k] as num) > 0).toList();
+    final entries = labels.where((k) => data.containsKey(k) && _toDouble(data[k]) > 0).toList();
     if (entries.isEmpty) return _emptyChart(loc: AppLocalizations.of(context)!);
-    final total = entries.fold<double>(0, (s, k) => s + (data[k] as num).toDouble());
+    final total = entries.fold<double>(0, (s, k) => s + _toDouble(data[k]));
 
     return Row(children: [
       Expanded(child: PieChart(PieChartData(
         sectionsSpace: 2,
         centerSpaceRadius: 40,
         sections: entries.asMap().entries.map((e) => PieChartSectionData(
-          value: (data[e.value] as num).toDouble(),
+          value: _toDouble(data[e.value]),
           color: colors[labels.indexOf(e.value)],
           radius: 50,
-          title: '${((data[e.value] as num).toDouble() / total * 100).toInt()}%',
+          title: '${(_toDouble(data[e.value]) / total * 100).toInt()}%',
           titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
         )).toList(),
       ))),

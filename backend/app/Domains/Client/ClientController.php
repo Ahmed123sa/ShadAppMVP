@@ -31,6 +31,10 @@ class ClientController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($request->user() && $request->user()->role === 'super_admin') {
+            return response()->json(['message' => 'غير مصرح'], 403);
+        }
+
         $request->validate([
             'company_name' => 'required|string|max:255',
             'contact_person' => 'required|string|max:255',
@@ -41,7 +45,7 @@ class ClientController extends Controller
             'country' => 'nullable|string|max:100',
             'industry' => 'nullable|string|max:100',
             'client_type' => 'nullable|string|in:business,individual',
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
             'send_email' => 'boolean',
         ]);
 
@@ -103,7 +107,7 @@ class ClientController extends Controller
             'industry' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
             'status' => 'in:active,inactive,blocked',
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
         ]);
 
         $fillableFields = ['company_name', 'contact_person', 'phone', 'country', 'industry', 'notes', 'status'];
@@ -119,7 +123,7 @@ class ClientController extends Controller
     public function sign(Request $request, Client $client): JsonResponse
     {
         if ($request->hasFile('signature_image')) {
-            $request->validate(['signature_image' => 'required|image|mimes:png|max:2048']);
+            $request->validate(['signature_image' => 'required|image|mimes:png,jpg,jpeg|max:5120']);
             $path = $request->file('signature_image')->store('signatures', 'public');
             $signatureData = Storage::url($path);
         } else {
@@ -132,6 +136,15 @@ class ClientController extends Controller
             'signed_at' => now(),
         ]);
 
+        return response()->json(['client' => $client->fresh()]);
+    }
+
+    public function deleteSign(Client $client): JsonResponse
+    {
+        $client->update([
+            'signature_data' => null,
+            'signed_at' => null,
+        ]);
         return response()->json(['client' => $client->fresh()]);
     }
 

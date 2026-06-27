@@ -91,31 +91,13 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(action == 'approved' ? '✅ تمت الموافقة' : action == 'edit_requested' ? '✎ تم طلب تعديل' : '❌ تم الرفض'),
+          content: Text(action == 'approved' ? '✅ تمت الموافقة' : '✎ تم طلب تعديل'),
         ));
         _load();
       }
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تنفيذ الإجراء')));
     }
-  }
-
-  Future<void> _showRejectDialog(int id) async {
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final c = TextEditingController();
-        return AlertDialog(
-          title: const Text('سبب الرفض'),
-          content: TextField(controller: c, maxLines: 3, decoration: const InputDecoration(hintText: 'اذكر سبب الرفض...')),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, c.text), child: const Text('تأكيد الرفض')),
-          ],
-        );
-      },
-    );
-    if (reason != null && mounted) _respond(id, 'rejected', reason.isEmpty ? null : reason);
   }
 
   Future<void> _showEditRequestDialog(int id) async {
@@ -290,12 +272,7 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
                               style: ElevatedButton.styleFrom(backgroundColor: ShadColors.success),
                               child: const Text('موافقة'),
                             )),
-                            const SizedBox(width: 6),
-                            Expanded(child: OutlinedButton(
-                              onPressed: () => _showRejectDialog(a['id']),
-                              style: OutlinedButton.styleFrom(foregroundColor: ShadColors.error, side: const BorderSide(color: ShadColors.error)),
-                              child: const Text('رفض'),
-                            )),
+
                           ]),
                           const SizedBox(height: 6),
                           SizedBox(

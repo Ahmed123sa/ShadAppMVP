@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/shad_logo.dart';
+import '../../../core/widgets/password_field.dart';
 import 'package:shadapp_client/generated/app_localizations.dart';
  
 class CreateClientPage extends StatefulWidget {
@@ -26,12 +27,14 @@ class _CreateClientPageState extends State<CreateClientPage> {
   final _notesController = TextEditingController();
   bool _isBusiness = true;
   bool _autoPassword = true;
-  bool _passwordVisible = false;
   bool _saving = false;
+  String? _errorMsg;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
+    _errorMsg = null;
+    final failMsg = AppLocalizations.of(context)!.clientCreateFailed;
     try {
       final res = await _api.post('/clients', {
         'company_name': _nameController.text.trim(),
@@ -66,9 +69,9 @@ class _CreateClientPageState extends State<CreateClientPage> {
         );
       }
     } on ValidationException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      _errorMsg = e.message;
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.clientCreateFailed)));
+      _errorMsg = failMsg;
     }
     if (mounted) setState(() => _saving = false);
   }
@@ -105,6 +108,17 @@ class _CreateClientPageState extends State<CreateClientPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (_errorMsg != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: ShadColors.errorLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_errorMsg!, style: const TextStyle(color: ShadColors.error, fontSize: 12)),
+              ),
             TextFormField(
               controller: _nameController,
               decoration: InputDecoration(labelText: AppLocalizations.of(context)!.companyName, hintText: AppLocalizations.of(context)!.companyNameHint),
@@ -156,24 +170,7 @@ class _CreateClientPageState extends State<CreateClientPage> {
             ]),
             if (!_autoPassword) ...[
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'كلمة المرور',
-                  hintText: 'أدخل كلمة المرور',
-                  suffixIcon: IconButton(
-                    icon: Icon(_passwordVisible ? Icons.visibility_off : Icons.visibility, size: 18),
-                    onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
-                  ),
-                ),
-                obscureText: !_passwordVisible,
-                textDirection: TextDirection.ltr,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'كلمة المرور مطلوبة';
-                  if (v.trim().length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
-                  return null;
-                },
-              ),
+              PasswordField(controller: _passwordController),
             ],
             const SizedBox(height: 14),
             TextFormField(

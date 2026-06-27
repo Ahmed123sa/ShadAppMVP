@@ -51,7 +51,6 @@ export default function ClientChat({ wsId, wsActive }: { wsId: number; wsActive?
 
   const actionResultLabel: Record<string, string> = {
     approved: '✅ تمت الموافقة',
-    rejected: '❌ تم الرفض',
     edit_requested: '✎ تم طلب تعديل',
   };
 
@@ -105,8 +104,6 @@ export default function ClientChat({ wsId, wsActive }: { wsId: number; wsActive?
                       className="text-xs bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 disabled:opacity-50">✔ موافقة</button>
                     <button onClick={() => respond(m.id, 'edit_requested')} disabled={responding[m.id]}
                       className="text-xs bg-amber-600 text-white px-2 py-1 rounded hover:bg-amber-700 disabled:opacity-50">✎ تعديل</button>
-                    <button onClick={() => respond(m.id, 'rejected')} disabled={responding[m.id]}
-                      className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 disabled:opacity-50">✘ رفض</button>
                   </div>
                 )}
               </div>

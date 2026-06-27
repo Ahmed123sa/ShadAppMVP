@@ -16,6 +16,7 @@ function resolveFileUrl(url: string): string {
 export default function SettingsPage() {
   const t = useTranslations('settings');
   const [user, setUser] = useState(getUser());
+  const isAM = user?.role === 'account_manager';
   const [officialEmail, setOfficialEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
@@ -27,9 +28,12 @@ export default function SettingsPage() {
   const [savedSignature, setSavedSignature] = useState<{ data: string; type: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingSig, setSavingSig] = useState(false);
+  const [deletingSig, setDeletingSig] = useState(false);
   const [success, setSuccess] = useState(false);
   const [sigSuccess, setSigSuccess] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const sigUploadInputRef = useRef<HTMLInputElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
@@ -61,9 +65,10 @@ export default function SettingsPage() {
       const form = new FormData();
       if (avatar) form.append('avatar', avatar);
       form.append('name', displayName);
-      form.append('official_email', officialEmail);
+      if (!isAM) form.append('official_email', officialEmail);
       const { data } = await api.post('/auth/me', form);
       setUser(data.user);
+      if (data.user?.avatar_url) setAvatarPreview(resolveFileUrl(data.user.avatar_url));
       localStorage.setItem('user', JSON.stringify(data.user));
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -128,17 +133,17 @@ export default function SettingsPage() {
     try {
       const form = new FormData();
       if (signatureType === 'draw') {
-        const dataUrl = getCanvasData();
-        if (!dataUrl) return;
-        const blob = await (await fetch(dataUrl)).blob();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) return;
         form.append('signature_image', blob, 'signature.png');
       } else if (signatureType === 'type') {
-        form.append('signature_text', typedSignature);
+        form.append('signature', typedSignature);
       } else if (signatureType === 'upload' && uploadedSignatureFile) {
         form.append('signature_image', uploadedSignatureFile);
       }
-      form.append('_method', 'PUT');
-      const { data } = await api.post('/auth/me', form);
+      const { data } = await api.post('/auth/sign', form);
       if (data.user?.signature_data) {
         setSavedSignature({ data: data.user.signature_data, type: data.user.signature_type || 'image' });
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -153,6 +158,19 @@ export default function SettingsPage() {
       // ignore
     } finally {
       setSavingSig(false);
+    }
+  };
+
+  const deleteSignature = async () => {
+    if (!confirm('هل أنت متأكد من حذف التوقيع؟')) return;
+    setDeletingSig(true);
+    try {
+      await api.delete('/auth/sign');
+      setSavedSignature(null);
+    } catch {
+      // ignore
+    } finally {
+      setDeletingSig(false);
     }
   };
 
@@ -179,10 +197,11 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-          <label className="cursor-pointer bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+          <button onClick={() => avatarInputRef.current?.click()} type="button"
+            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
             {t('change_avatar')}
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          </label>
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
       </div>
 
@@ -192,14 +211,14 @@ export default function SettingsPage() {
           className="border rounded-lg px-4 py-2 text-sm w-full" placeholder={t('name')} />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      {!isAM && <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('official_email')}</h2>
         <p className="text-xs text-zinc-500">{t('official_email_hint')}</p>
         <input value={officialEmail} onChange={(e) => setOfficialEmail(e.target.value)}
           className="border rounded-lg px-4 py-2 text-sm w-full" type="email" placeholder={t('official_email')} dir="ltr" />
-      </div>
+      </div>}
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      {!isAM && <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('signature')}</h2>
         <p className="text-xs text-zinc-500">{t('signature_hint')}</p>
 
@@ -211,6 +230,10 @@ export default function SettingsPage() {
             ) : (
               <img src={resolveFileUrl(savedSignature.data)} alt="التوقيع المحفوظ" className="max-h-20 border rounded-lg p-2 bg-zinc-50" />
             )}
+            <button onClick={deleteSignature} disabled={deletingSig}
+              className="text-red-600 hover:text-red-700 text-xs underline disabled:opacity-50">
+              {deletingSig ? '...' : 'حذف التوقيع'}
+            </button>
           </div>
         ) : (
           <p className="text-sm text-amber-600">{t('saved_signature')}</p>
@@ -248,13 +271,14 @@ export default function SettingsPage() {
 
         {signatureType === 'upload' && (
           <div className="space-y-2">
-            <label className="cursor-pointer bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm inline-block transition-colors">
+            <button onClick={() => sigUploadInputRef.current?.click()} type="button"
+              className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm inline-block transition-colors">
               {t('upload_signature')}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) { setUploadedSignatureFile(file); setUploadedSignaturePreview(URL.createObjectURL(file)); }
-              }} />
-            </label>
+            </button>
+            <input ref={sigUploadInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) { setUploadedSignatureFile(file); setUploadedSignaturePreview(URL.createObjectURL(file)); }
+            }} />
             {uploadedSignaturePreview && (
               <img src={uploadedSignaturePreview} alt="" className="max-h-20 border rounded-lg p-2" />
             )}
@@ -267,7 +291,7 @@ export default function SettingsPage() {
             {savingSig ? '...' : t('save')}
           </button>
         )}
-      </div>
+      </div>}
 
       <button onClick={saveProfile} disabled={saving}
         className="bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { getUser } from '@/lib/auth';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -29,10 +30,12 @@ export default function MeetingsTab({ wsId }: { wsId: number }) {
 
   if (loading) return <LoadingSkeleton />;
 
+  const isSA = getUser()?.role === 'super_admin';
+
   return (
     <div className="space-y-3">
-      <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline">+ اجتماع جديد</button>
-      {showForm && (
+      {!isSA && <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline">+ اجتماع جديد</button>}
+      {!isSA && showForm && (
         <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="عنوان الاجتماع" className="border rounded-lg px-3 py-2 text-sm w-full" />
           <div className="flex gap-2">

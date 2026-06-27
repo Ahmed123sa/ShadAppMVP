@@ -1,11 +1,10 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/api_client.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/shad_logo.dart';
+import '../../signature/render_signature.dart';
 
 class AdminSettingsPage extends StatefulWidget {
   const AdminSettingsPage({super.key});
@@ -66,13 +65,13 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   Future<void> _saveProfile() async {
     setState(() => _saving = true);
     try {
-      await _api.put('/auth/me', {
-        'name': _nameController.text.trim(),
-        'official_email': _emailController.text.trim(),
-      });
+      final isAM = _api.role == 'account_manager';
+      final body = <String, dynamic>{'name': _nameController.text.trim()};
+      if (!isAM) body['official_email'] = _emailController.text.trim();
+      await _api.put('/auth/me', body);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم حفظ الإعدادات')));
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ الإعدادات')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ الإعدادات: $e')));
     }
     if (mounted) setState(() => _saving = false);
   }
@@ -85,8 +84,8 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       await _api.multipartPost('/auth/me', {}, file: file, fileField: 'avatar');
       _load();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم تغيير الصورة')));
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تغيير الصورة')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل تغيير الصورة: $e')));
     }
   }
 
@@ -94,13 +93,13 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     setState(() => _saving = true);
     try {
       if (_sigMode == 'draw') {
-        if (_strokes.isEmpty && _currentStroke.isEmpty) return;
-        final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-        if (boundary == null) return;
-        final image = await boundary.toImage(pixelRatio: 3);
-        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-        if (byteData == null) return;
-        final pngBytes = byteData.buffer.asUint8List();
+        if (_strokes.isEmpty && _currentStroke.isEmpty) {
+          if (mounted) setState(() => _saving = false);
+          return;
+        }
+        final renderBox = _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
+        final size = renderBox?.size ?? const Size(400, 200);
+        final pngBytes = await renderSignatureAsPng(strokes: _strokes, currentStroke: _currentStroke, size: size);
         final dir = Directory.systemTemp;
         final file = File('${dir.path}/sig_${DateTime.now().millisecondsSinceEpoch}.png');
         await file.writeAsBytes(pngBytes);
@@ -114,17 +113,28 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم حفظ التوقيع')));
         _load();
       }
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ التوقيع: $e')));
     }
     if (mounted) setState(() => _saving = false);
   }
 
   void _clearStrokes() => setState(() { _strokes.clear(); _currentStroke.clear(); });
 
+  Future<void> _deleteSignature() async {
+    try {
+      await _api.delete('/auth/sign');
+      await _load();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم حذف التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حذف التوقيع: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final isAM = _api.role == 'account_manager';
 
     return Scaffold(
       appBar: AppBar(
@@ -167,11 +177,12 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
             decoration: const InputDecoration(labelText: 'الاسم'),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _emailController,
-            decoration: const InputDecoration(labelText: 'البريد الإلكتروني الرسمي', hintText: 'company@example.com'),
-            keyboardType: TextInputType.emailAddress,
-          ),
+          if (!isAM)
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'البريد الإلكتروني الرسمي', hintText: 'company@example.com'),
+              keyboardType: TextInputType.emailAddress,
+            ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -182,112 +193,170 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   : const Text('حفظ الإعدادات'),
             ),
           ),
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 12),
+          if (!isAM) ...[
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
 
-          Text('التوقيع المحفوظ', style: ShadTypography.cardTitle),
-          const SizedBox(height: 8),
-
-          if (_existingSigUrl != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ShadColors.card,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: ShadColors.cardBorder),
-              ),
-              child: Column(children: [
-                const Text('التوقيع الحالي', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.network(_existingSigUrl!, height: 60, fit: BoxFit.contain),
-                ),
-              ]),
-            ),
-          if (_existingSigText != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ShadColors.card,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: ShadColors.cardBorder),
-              ),
-              child: Column(children: [
-                const Text('التوقيع الحالي', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
-                const SizedBox(height: 8),
-                Text(_existingSigText!, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w400, fontFamily: 'DancingScript')),
-              ]),
-            ),
-          if (_existingSigUrl != null || _existingSigText != null) const SizedBox(height: 12),
-
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _modeChip('draw', 'رسم', Icons.brush),
-            const SizedBox(width: 8),
-            _modeChip('text', 'نص', Icons.text_fields),
-          ]),
-          const SizedBox(height: 12),
-
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.image, size: 18),
-              label: const Text('📷 رفع صورة توقيع'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ShadColors.primary,
-                side: const BorderSide(color: ShadColors.primary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-
-          if (_sigMode == 'draw') ...[
-            const Text('وقّع هنا', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+            Text('التوقيع المحفوظ', style: ShadTypography.cardTitle),
             const SizedBox(height: 8),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: ShadColors.black,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: ShadColors.cardBorder),
+
+            if (_existingSigUrl != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ShadColors.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ShadColors.cardBorder),
+                ),
+                child: Column(children: [
+                  const Text('التوقيع الحالي', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.network(_existingSigUrl!, height: 60, fit: BoxFit.contain),
+                  ),
+                ]),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: GestureDetector(
-                  onPanStart: (_) => setState(() => _currentStroke = []),
-                  onPanUpdate: (details) => setState(() => _currentStroke.add(details.localPosition)),
-                  onPanEnd: (_) => setState(() { _strokes.add(List.from(_currentStroke)); _currentStroke = []; }),
-                  child: RepaintBoundary(
-                    key: _boundaryKey,
-                    child: CustomPaint(
-                      painter: _SigPainter(strokes: _strokes, currentStroke: _currentStroke),
-                      size: Size.infinite,
+            if (_existingSigText != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ShadColors.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ShadColors.cardBorder),
+                ),
+                child: Column(children: [
+                  const Text('التوقيع الحالي', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  Text(_existingSigText!, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w400, fontFamily: 'DancingScript')),
+                ]),
+              ),
+            if (_existingSigUrl != null || _existingSigText != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _deleteSignature,
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                  label: const Text('حذف التوقيع', style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              _modeChip('draw', 'رسم', Icons.brush),
+              const SizedBox(width: 8),
+              _modeChip('text', 'نص', Icons.text_fields),
+            ]),
+            const SizedBox(height: 12),
+
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _pickImage,
+                icon: const Icon(Icons.image, size: 18),
+                label: const Text('📷 رفع صورة توقيع'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ShadColors.primary,
+                  side: const BorderSide(color: ShadColors.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+
+            if (_sigMode == 'draw') ...[
+              const Text('وقّع هنا', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+              const SizedBox(height: 8),
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: ShadColors.black,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ShadColors.cardBorder),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: GestureDetector(
+                    onPanStart: (_) => setState(() => _currentStroke = []),
+                    onPanUpdate: (details) => setState(() => _currentStroke.add(details.localPosition)),
+                    onPanEnd: (_) => setState(() { _strokes.add(List.from(_currentStroke)); _currentStroke = []; }),
+                    child: RepaintBoundary(
+                      key: _boundaryKey,
+                      child: CustomPaint(
+                        painter: _SigPainter(strokes: _strokes, currentStroke: _currentStroke),
+                        size: Size.infinite,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(child: OutlinedButton.icon(
-                onPressed: _clearStrokes,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('مسح'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: ShadColors.textSecondary,
-                  side: const BorderSide(color: ShadColors.cardBorder),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: OutlinedButton.icon(
+                  onPressed: _clearStrokes,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('مسح'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ShadColors.textSecondary,
+                    side: const BorderSide(color: ShadColors.cardBorder),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                )),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saving ? null : _saveSignature,
+                    icon: _saving
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.check_circle, size: 18),
+                    label: const Text('حفظ التوقيع'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ShadColors.crimson,
+                      foregroundColor: ShadColors.textOnCrimson,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
                 ),
-              )),
-              const SizedBox(width: 12),
-              Expanded(
+              ]),
+            ],
+
+            if (_sigMode == 'text') ...[
+              const Text('اكتب اسمك', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: ShadColors.black,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ShadColors.cardBorder),
+                ),
+                child: TextField(
+                  controller: _sigTextController,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w400, fontFamily: 'DancingScript'),
+                  decoration: const InputDecoration(
+                    hintText: 'اكتب توقيعك',
+                    hintStyle: TextStyle(color: ShadColors.textDisabled, fontSize: 20),
+                    border: InputBorder.none,
+                  ),
+                  maxLines: 1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _saving ? null : _saveSignature,
                   icon: _saving
@@ -302,49 +371,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                   ),
                 ),
               ),
-            ]),
-          ],
-
-          if (_sigMode == 'text') ...[
-            const Text('اكتب اسمك', style: TextStyle(fontSize: 12, color: ShadColors.textSecondary)),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: ShadColors.black,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: ShadColors.cardBorder),
-              ),
-              child: TextField(
-                controller: _sigTextController,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w400, fontFamily: 'DancingScript'),
-                decoration: const InputDecoration(
-                  hintText: 'اكتب توقيعك',
-                  hintStyle: TextStyle(color: ShadColors.textDisabled, fontSize: 20),
-                  border: InputBorder.none,
-                ),
-                maxLines: 1,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _saveSignature,
-                icon: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_circle, size: 18),
-                label: const Text('حفظ التوقيع'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ShadColors.crimson,
-                  foregroundColor: ShadColors.textOnCrimson,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
+            ],
           ],
         ],
       ),
@@ -361,8 +388,8 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم حفظ التوقيع')));
         _load();
       }
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ التوقيع: $e')));
     }
   }
 

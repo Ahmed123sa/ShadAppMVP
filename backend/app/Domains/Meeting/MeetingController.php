@@ -3,6 +3,7 @@
 namespace App\Domains\Meeting;
 
 use App\Models\Meeting;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\MeetingCreated;
@@ -13,6 +14,22 @@ use Illuminate\Support\Facades\Http;
 
 class MeetingController extends Controller
 {
+    public function allMeetings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user || $user->role !== 'super_admin') {
+            return response()->json(['message' => 'غير مصرح'], 403);
+        }
+
+        $managerIds = User::where('super_admin_id', $user->id)->pluck('id');
+        $meetings = Meeting::with('workspace.client', 'contract', 'approval')
+            ->whereHas('workspace', fn($q) => $q->whereIn('manager_id', $managerIds))
+            ->latest()
+            ->get();
+
+        return response()->json(['meetings' => $meetings]);
+    }
+
     public function index(Workspace $workspace): JsonResponse
     {
         return response()->json(['meetings' => $workspace->meetings()->with('contract', 'approval')->latest()->get()]);
@@ -20,6 +37,10 @@ class MeetingController extends Controller
 
     public function store(Request $request, Workspace $workspace): JsonResponse
     {
+        if ($request->user() && $request->user()->role === 'super_admin') {
+            return response()->json(['message' => 'غير مصرح'], 403);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'scheduled_at' => 'required|date',

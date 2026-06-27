@@ -358,16 +358,17 @@ class _ContractsTabState extends State<ContractsTab> {
             },
           ),
         ),
-      Positioned(
-        bottom: 16,
-        left: 16,
-        right: 16,
-        child: ElevatedButton.icon(
-          onPressed: () => ContractBuilder.show(context, onCreated: _load),
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('إنشاء عقد جديد'),
+      if (_api.role != 'super_admin')
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: ElevatedButton.icon(
+            onPressed: () => ContractBuilder.show(context, onCreated: _load),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('إنشاء عقد جديد'),
+          ),
         ),
-      ),
     ]);
   }
 }

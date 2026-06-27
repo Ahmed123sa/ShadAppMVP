@@ -116,7 +116,7 @@ class ApprovalController extends Controller
     public function respond(Request $request, Approval $approval): JsonResponse
     {
         $request->validate([
-            'action' => 'required|in:approved,rejected,edit_requested',
+            'action' => 'required|in:approved,edit_requested',
         ]);
 
         $user = $request->user();
@@ -129,7 +129,7 @@ class ApprovalController extends Controller
         $signature = $user instanceof \App\Models\Client ? $user->signature_data : null;
 
         $approval->update([
-            'status' => $request->action === 'approved' ? 'approved' : ($request->action === 'rejected' ? 'rejected' : 'edit_requested'),
+            'status' => $request->action === 'approved' ? 'approved' : 'edit_requested',
             'client_action' => $request->action,
             'signature' => $signature,
             'responded_at' => now(),

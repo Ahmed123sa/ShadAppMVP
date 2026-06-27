@@ -12,11 +12,32 @@ import 'package:shadapp_client/generated/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  Map<String, String>? pendingNotifData;
+  GoRouter? router;
+
   if (!kIsWeb) {
     await Firebase.initializeApp();
     final notificationService = NotificationService();
+
+    // تُستدعى هذه الدالة عند الضغط على الإشعار (بما في ذلك cold start)
+    void handleNotificationData(Map<String, String> data) {
+      if (router != null) {
+        _navigateFromNotification(data, router);
+      } else {
+        pendingNotifData = data;
+      }
+    }
+
+    notificationService.onMessageOpenedApp = (message) {
+      handleNotificationData(message.data.cast<String, String>());
+    };
+
+    notificationService.onLocalNotificationTapped = handleNotificationData;
+
     await notificationService.init();
   }
+
   final api = ApiClient();
   await api.init();
   final token = await api.getToken();
@@ -28,10 +49,28 @@ void main() async {
     final role = await api.getRole();
     initialLocation = role == 'client' ? '/dashboard' : '/am/dashboard';
   }
-  final router = createRouter(api, initialLocation: initialLocation);
+  router = createRouter(api, initialLocation: initialLocation);
+
+  if (pendingNotifData != null) {
+    _navigateFromNotification(pendingNotifData!, router);
+  }
+
   final localeProvider = LocaleProvider();
   await localeProvider.init();
   runApp(ShadApp(router: router, localeProvider: localeProvider));
+}
+
+void _navigateFromNotification(Map<String, String> data, GoRouter router) {
+  final type = data['type'];
+  final workspaceId = data['workspace_id'];
+
+  if (type == 'chat' || type == 'approval') {
+    if (workspaceId != null) {
+      router.go('/am/workspace/$workspaceId');
+      return;
+    }
+  }
+  router.go('/am/dashboard');
 }
 
 class ShadApp extends StatefulWidget {

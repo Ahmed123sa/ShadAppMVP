@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/api_client.dart';
+import 'render_signature.dart';
 import '../../core/theme.dart';
 
 class SignatureTab extends StatefulWidget {
@@ -45,6 +43,7 @@ class _SignatureTabState extends State<SignatureTab> {
       final data = await _api.get('/clients/$cid');
       final client = data['client'] as Map<String, dynamic>?;
       final sigData = client?['signature_data'] as String?;
+      setState(() { _existingSigUrl = null; _existingSigText = null; });
       if (sigData != null && sigData.isNotEmpty) {
         if (sigData.startsWith('http') || sigData.startsWith('/')) {
           setState(() => _existingSigUrl = sigData.startsWith('http') ? sigData : '${_api.baseUrl.replaceAll('/api', '')}$sigData');
@@ -57,20 +56,31 @@ class _SignatureTabState extends State<SignatureTab> {
 
   void _clear() => setState(() { _strokes.clear(); _currentStroke.clear(); });
 
+  Future<void> _deleteSignature() async {
+    try {
+      final cid = _api.userId;
+      if (cid == null) return;
+      await _api.delete('/clients/$cid/sign');
+      setState(() { _existingSigUrl = null; _existingSigText = null; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم حذف التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حذف التوقيع: $e')));
+    }
+  }
+
   Future<void> _pickImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null && result.files.single.path != null) {
       try {
-        final bytes = await File(result.files.single.path!).readAsBytes();
-        final base64Sig = base64Encode(bytes);
+        final file = File(result.files.single.path!);
         final cid = _api.userId;
         if (cid == null) return;
-        await _api.post('/clients/$cid/sign', {'signature': base64Sig});
+        await _api.multipartPost('/clients/$cid/sign', {}, file: file, fileField: 'signature_image');
         if (mounted) {
           _loadExisting();
         }
-      } catch (_) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ التوقيع')));
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ التوقيع: $e')));
       }
     }
   }
@@ -79,14 +89,11 @@ class _SignatureTabState extends State<SignatureTab> {
     if (_strokes.isEmpty && _currentStroke.isEmpty) return;
     setState(() => _saving = true);
     try {
-      final boundary = _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) throw Exception('No boundary');
-      final image = await boundary.toImage(pixelRatio: 3);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) throw Exception('No bytes');
-      final pngBytes = byteData.buffer.asUint8List();
+      final renderBox = _boundaryKey.currentContext?.findRenderObject() as RenderBox?;
+      final size = renderBox?.size ?? const Size(400, 200);
+      final pngBytes = await renderSignatureAsPng(strokes: _strokes, currentStroke: _currentStroke, size: size);
       final cid = _api.userId;
-      if (cid == null) return;
+      if (cid == null) throw Exception('لم يتم العثور على معرف المستخدم');
       final dir = Directory.systemTemp;
       final file = File('${dir.path}/signature_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(pngBytes);
@@ -94,8 +101,8 @@ class _SignatureTabState extends State<SignatureTab> {
       if (mounted) {
         _loadExisting();
       }
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ التوقيع: $e')));
     }
     if (mounted) setState(() => _saving = false);
   }
@@ -106,13 +113,14 @@ class _SignatureTabState extends State<SignatureTab> {
     setState(() => _saving = true);
     try {
       final cid = _api.userId;
-      if (cid == null) return;
+      if (cid == null) throw Exception('لم يتم العثور على معرف المستخدم');
       await _api.post('/clients/$cid/sign', {'signature': text});
       if (mounted) {
+        _textController.clear();
         _loadExisting();
       }
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ التوقيع')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل حفظ التوقيع: $e')));
     }
     if (mounted) setState(() => _saving = false);
   }
@@ -122,6 +130,7 @@ class _SignatureTabState extends State<SignatureTab> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SingleChildScrollView(
+        physics: _mode == 'draw' ? const NeverScrollableScrollPhysics() : null,
         child: Column(children: [
           if (_existingSigUrl != null) ...[
             Container(
@@ -168,6 +177,23 @@ class _SignatureTabState extends State<SignatureTab> {
             ),
             const SizedBox(height: 16),
           ],
+
+          if (_existingSigUrl != null || _existingSigText != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _deleteSignature,
+                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                label: const Text('حذف التوقيع', style: TextStyle(color: Colors.red)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             _modeChip('draw', 'رسم', Icons.brush),
             const SizedBox(width: 8),

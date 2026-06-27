@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import PasswordField from '@/components/ui/PasswordField';
 
 const FILE_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000';
 
@@ -24,6 +25,7 @@ export default function ClientSettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [password, setPassword] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get(`/clients/${id}`).then(({ data }) => {
@@ -87,10 +89,11 @@ export default function ClientSettingsPage() {
               </div>
             )}
           </div>
-          <label className="cursor-pointer bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+          <button onClick={() => avatarInputRef.current?.click()} type="button"
+            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
             تغيير الصورة
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          </label>
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 
         <div className="space-y-1">
@@ -109,11 +112,7 @@ export default function ClientSettingsPage() {
           <input value={client.email} disabled className="border rounded-lg px-4 py-2 text-sm w-full bg-zinc-50 text-zinc-400" dir="ltr" />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs text-zinc-500">تغيير كلمة المرور</label>
-          <input value={password} onChange={(e) => setPassword(e.target.value)} type="text"
-            className="border rounded-lg px-4 py-2 text-sm w-full" placeholder="اتركه فارغاً إذا لا تريد التغيير" dir="ltr" />
-        </div>
+        <PasswordField value={password} onChange={setPassword} label="تغيير كلمة المرور" placeholder="اتركه فارغاً إذا لا تريد التغيير" opt />
 
         <button onClick={saveProfile} disabled={saving}
           className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">

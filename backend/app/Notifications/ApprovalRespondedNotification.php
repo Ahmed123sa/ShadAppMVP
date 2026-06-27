@@ -19,12 +19,12 @@ class ApprovalRespondedNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
     {
-        $status = $this->approval->status === 'approved' ? 'تم الموافقة' : ($this->approval->status === 'rejected' ? 'مرفوض' : 'طلب تعديل');
+        $status = $this->approval->status === 'approved' ? 'تم الموافقة' : 'طلب تعديل';
         return [
             'type' => 'approval_responded',
             'approval_id' => $this->approval->id,
@@ -35,7 +35,7 @@ class ApprovalRespondedNotification extends Notification
 
     public function toFcm($notifiable): array
     {
-        $status = $this->approval->status === 'approved' ? 'مقبولة' : ($this->approval->status === 'rejected' ? 'مرفوضة' : 'طلب تعديل');
+        $status = $this->approval->status === 'approved' ? 'مقبولة' : 'طلب تعديل';
         return [
             'title' => 'رد على طلب موافقة',
             'body' => "طلب الموافقة '{$this->approval->title}' أصبح {$status}",
@@ -44,5 +44,10 @@ class ApprovalRespondedNotification extends Notification
                 'id' => (string) $this->approval->id,
             ],
         ];
+    }
+
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

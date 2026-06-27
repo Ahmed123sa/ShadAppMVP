@@ -15,6 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _api = ApiClient();
+  bool _passwordVisible = false;
   String? _error;
   bool _loading = false;
   Future<void> _login() async {
@@ -173,13 +174,16 @@ class _LoginPageState extends State<LoginPage> {
                         controller: _passwordController,
                         decoration: InputDecoration(
                           hintText: '••••••••',
-                          suffixIcon: Icon(Icons.lock_outline, size: 20, color: ShadColors.textSecondary),
+                          suffixIcon: IconButton(
+                            icon: Icon(_passwordVisible ? Icons.visibility_off : Icons.visibility, size: 20),
+                            onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                          ),
                           filled: true,
                           fillColor: ShadColors.surface,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                         ),
-                        obscureText: true,
+                        obscureText: !_passwordVisible,
                         textDirection: TextDirection.ltr,
                         onSubmitted: (_) => _login(),
                       ),

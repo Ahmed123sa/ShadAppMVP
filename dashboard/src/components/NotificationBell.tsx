@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { subscribeToNotifications, disconnectEcho } from '@/lib/echo';
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
@@ -18,10 +21,11 @@ export default function NotificationBell() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 30000);
+    const unsubscribe = subscribeToNotifications(() => { load(); });
+    const interval = setInterval(load, 300000);
     const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', close);
-    return () => { clearInterval(interval); document.removeEventListener('mousedown', close); };
+    return () => { clearInterval(interval); if (unsubscribe) unsubscribe(); disconnectEcho(); document.removeEventListener('mousedown', close); };
   }, []);
 
   const markRead = (id: string) => {
@@ -53,7 +57,7 @@ export default function NotificationBell() {
             <p className="text-xs text-zinc-400 p-4 text-center">لا توجد إشعارات</p>
           ) : (
             notifications.map((n) => (
-              <a key={n.id} href={getHref(n)} onClick={() => { if (!n.read_at) markRead(n.id); }}
+              <a key={n.id} href={getHref(n)} onClick={(e) => { if (!n.read_at) markRead(n.id); const href = getHref(n); if (href !== '#') { e.preventDefault(); router.push(href); } }}
                 className={`block p-3 border-b last:border-0 hover:bg-zinc-50 transition ${n.read_at ? '' : 'bg-blue-50'}`}>
                 <p className="text-xs font-medium">{n.data?.title || ''}</p>
                 <p className="text-xs text-zinc-500 mt-0.5">{n.data?.message || ''}</p>

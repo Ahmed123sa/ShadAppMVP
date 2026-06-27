@@ -19,7 +19,7 @@ class ContractCompanyApprovedNotification extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database', 'broadcast', FcmChannel::class];
     }
 
     public function toDatabase($notifiable): array
@@ -40,5 +40,9 @@ class ContractCompanyApprovedNotification extends Notification
             'body' => 'تم اعتماد العقد ' . $this->contract->title . ' من الطرفين.',
             'data' => ['type' => 'contract', 'id' => (string) $this->contract->id],
         ];
+    }
+    public function toBroadcast($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

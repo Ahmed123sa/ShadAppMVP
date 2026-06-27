@@ -10,7 +10,6 @@ class ChatContractCard extends StatelessWidget {
   final bool isClient;
   final VoidCallback onViewClauses;
   final VoidCallback? onApprove;
-  final VoidCallback? onReject;
 
   const ChatContractCard({
     super.key,
@@ -18,7 +17,7 @@ class ChatContractCard extends StatelessWidget {
     required this.isClient,
     required this.onViewClauses,
     this.onApprove,
-    this.onReject,
+
   });
 
   @override
@@ -95,17 +94,7 @@ class ChatContractCard extends StatelessWidget {
                   ),
                   child: Text(AppLocalizations.of(context)!.approve),
                 ),
-                const SizedBox(width: 6),
-                OutlinedButton(
-                  onPressed: onReject,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ShadColors.error,
-                    side: const BorderSide(color: ShadColors.error),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    textStyle: ShadTypography.cardBody.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  child: Text(AppLocalizations.of(context)!.reject),
-                ),
+
               ],
             ]),
           ],

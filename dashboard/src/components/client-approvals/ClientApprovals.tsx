@@ -81,8 +81,6 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
             <div className="mt-3 flex gap-2">
               <button onClick={() => setRespondTarget({ id: a.id, action: 'approved' })}
                 className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700">✔ موافقة</button>
-              <button onClick={() => setRespondTarget({ id: a.id, action: 'rejected' })}
-                className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700">✘ رفض</button>
               <button onClick={() => setRespondTarget({ id: a.id, action: 'edit_requested' })}
                 className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700">طلب تعديل</button>
             </div>
@@ -92,17 +90,11 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
 
       <ConfirmDialog
         open={!!respondTarget}
-        title={respondTarget?.action === 'approved' ? 'موافقة' : respondTarget?.action === 'rejected' ? 'رفض' : 'طلب تعديل'}
-        message={
-          respondTarget?.action === 'approved'
-            ? 'سيتم استخدام توقيعك الإلكتروني المحفوظ. هل أنت متأكد؟'
-            : respondTarget?.action === 'rejected'
-            ? 'تأكيد رفض هذا الطلب؟'
-            : 'تأكيد طلب تعديل هذا الطلب؟'
-        }
+        title={respondTarget?.action === 'approved' ? 'موافقة' : 'طلب تعديل'}
+        message={respondTarget?.action === 'approved' ? 'سيتم استخدام توقيعك الإلكتروني المحفوظ. هل أنت متأكد؟' : 'تأكيد طلب تعديل هذا الطلب؟'}
         confirmLabel="تأكيد"
         cancelLabel="إلغاء"
-        variant={respondTarget?.action === 'rejected' ? 'danger' : 'default'}
+        variant="default"
         onConfirm={respond}
         onCancel={() => setRespondTarget(null)}
       />

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import PasswordField from '@/components/ui/PasswordField';
 
 export default function ClientSubUsers({ clientId }: { clientId: number }) {
   const [subUsers, setSubUsers] = useState<any[]>([]);
@@ -56,8 +57,7 @@ export default function ClientSubUsers({ clientId }: { clientId: number }) {
             placeholder="الاسم" className="border rounded-lg px-3 py-2 text-sm w-full" />
           <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
             type="email" placeholder="البريد الإلكتروني" className="border rounded-lg px-3 py-2 text-sm w-full" dir="ltr" />
-          <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-            type="password" placeholder="كلمة المرور" className="border rounded-lg px-3 py-2 text-sm w-full" dir="ltr" />
+          <PasswordField value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="كلمة المرور" />
           <button onClick={create} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">حفظ</button>
         </div>
       )}

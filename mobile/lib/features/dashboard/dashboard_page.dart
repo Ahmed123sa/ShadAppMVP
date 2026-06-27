@@ -1,9 +1,10 @@
-﻿import 'dart:async';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/locale_provider.dart';
+import '../../core/reverb_service.dart';
 import '../../core/widgets/shad_logo.dart';
 import '../../core/widgets/stages_stepper.dart';
 import '../contracts/contracts_page.dart';
@@ -26,23 +27,70 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
   final _api = ApiClient();
   int _unreadNotifs = 0;
+  final ValueNotifier<int> _contractRefreshNotifier = ValueNotifier<int>(0);
 
   Map<String, dynamic>? _client;
   Map<String, dynamic>? _workspace;
   bool _loading = true;
   String? _error;
-  Timer? _refreshTimer;
+  int _lastStage = 0;
+  bool _autoAdvancing = false;
+
+  int _computeStage() {
+    final client = _client;
+    final ws = _workspace;
+    if (client == null || ws == null) return 0;
+    final contractsList = (ws['contracts'] as List?) ?? [];
+    final paymentsList = (ws['payments'] as List?) ?? [];
+    final wsStatus = ws['status'] as String? ?? '';
+    if (wsStatus == 'active') return 6;
+    if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) return 5;
+    if (contractsList.any((c) => c is Map && (c['status'] == 'company_approved' || c['status'] == 'completed'))) return 4;
+    if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) return 3;
+    if (contractsList.any((c) => c is Map && c['status'] == 'sent')) return 2;
+    if (client['signed_at'] != null) return 1;
+    return 0;
+  }
+
+  int _stageToTab(int stage) {
+    final map = {1: 0, 2: 0, 3: 0, 4: 1, 5: 1, 6: 3};
+    return map[stage] ?? 0;
+  }
+
+  int _tabRequiredStage(int tab) {
+    const stages = [1, 4, 1, 2, 1, 1, 0, 1];
+    return stages[tab];
+  }
+
+  bool _isTabLocked(int tab) {
+    return _computeStage() < _tabRequiredStage(tab);
+  }
 
   @override
   void initState() {
     super.initState();
     _loadClientData();
     _loadNotifs();
+    _setupRealtimeNotifications();
+  }
+
+  void _setupRealtimeNotifications() {
+    final cid = _api.userId;
+    if (cid == null) return;
+    final reverb = ReverbService();
+    reverb.connectForClient(cid);
+    reverb.onNotificationReceived = () {
+      _loadNotifs();
+      _contractRefreshNotifier.value++;
+    };
+    reverb.onContractStatusChanged = () {
+      _loadClientData();
+      _contractRefreshNotifier.value++;
+    };
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -53,19 +101,33 @@ class _DashboardPageState extends State<DashboardPage> {
       final data = await _api.get('/clients/$cid');
       _client = data['client'] as Map<String, dynamic>?;
       _workspace = data['client']?['workspace'] as Map<String, dynamic>?;
-      final signedAt = _client?['signed_at'] as String?;
-      if (signedAt != null && signedAt.isNotEmpty) {
-        _startRefresh();
-      }
+      _checkAutoAdvance();
     } catch (e) {
       _error = 'فشل تحميل البيانات';
     }
     if (mounted) setState(() => _loading = false);
   }
 
-  void _startRefresh() {
-    _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadClientData());
+  void _checkAutoAdvance() {
+    if (_autoAdvancing) return;
+    final currentStage = _computeStage();
+    // Redirect to a valid tab if current one is locked
+    if (_isTabLocked(_selectedIndex)) {
+      final targetTab = _stageToTab(currentStage);
+      setState(() => _selectedIndex = targetTab);
+    }
+    // Auto-advance forward
+    if (currentStage > _lastStage && currentStage > 0) {
+      _autoAdvancing = true;
+      final targetTab = _stageToTab(currentStage);
+      if (targetTab != _selectedIndex) {
+        setState(() => _selectedIndex = targetTab);
+      }
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _autoAdvancing = false;
+      });
+    }
+    _lastStage = currentStage;
   }
 
   Future<void> _loadNotifs() async {
@@ -89,7 +151,6 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
     if (confirm == true) {
-      _refreshTimer?.cancel();
       await _api.clearToken();
       if (!mounted) return;
       context.go('/login');
@@ -261,7 +322,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildDashboard() {
     final pages = <Widget>[
-      ContractsPage(onGoToPayments: _goToPayments),
+      ContractsPage(onGoToPayments: _goToPayments, refreshNotifier: _contractRefreshNotifier),
       const PaymentsPage(),
       const ApprovalsPage(),
       const ChatPage(),
@@ -315,36 +376,48 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          onDestinationSelected: (i) {
+            if (_isTabLocked(i)) {
+              final reqStage = _tabRequiredStage(i);
+              final stageLabels = ['', 'التوقيع', 'استلام العقد', 'موافقتك', 'اعتماد الشركة', 'إثبات الدفع', 'تفعيل المساحة'];
+              final label = stageLabels.length > reqStage ? stageLabels[reqStage] : '';
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('هذا التبويب مقفول — يجب إكمال مرحلة "$label" أولاً'),
+                duration: const Duration(seconds: 3),
+              ));
+              return;
+            }
+            setState(() => _selectedIndex = i);
+          },
           indicatorColor: Colors.transparent,
           destinations: [
             NavigationDestination(
-              icon: _navIcon(Icons.description_outlined, 0),
+              icon: _navIcon(_isTabLocked(0) ? Icons.lock_outline : Icons.description_outlined, 0),
               selectedIcon: _navIcon(Icons.description_rounded, 0, selected: true),
               label: 'العقود',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.payments_outlined, 1),
+              icon: _navIcon(_isTabLocked(1) ? Icons.lock_outline : Icons.payments_outlined, 1),
               selectedIcon: _navIcon(Icons.payments_rounded, 1, selected: true),
               label: 'المدفوعات',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.check_circle_outlined, 2),
+              icon: _navIcon(_isTabLocked(2) ? Icons.lock_outline : Icons.check_circle_outlined, 2),
               selectedIcon: _navIcon(Icons.check_circle_rounded, 2, selected: true),
               label: 'الموافقات',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.chat_outlined, 3),
+              icon: _navIcon(_isTabLocked(3) ? Icons.lock_outline : Icons.chat_outlined, 3),
               selectedIcon: _navIcon(Icons.chat_rounded, 3, selected: true),
               label: 'الشات',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.folder_outlined, 4),
+              icon: _navIcon(_isTabLocked(4) ? Icons.lock_outline : Icons.folder_outlined, 4),
               selectedIcon: _navIcon(Icons.folder_rounded, 4, selected: true),
               label: 'الملفات',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.videocam_outlined, 5),
+              icon: _navIcon(_isTabLocked(5) ? Icons.lock_outline : Icons.videocam_outlined, 5),
               selectedIcon: _navIcon(Icons.videocam_rounded, 5, selected: true),
               label: 'الاجتماعات',
             ),
@@ -354,7 +427,7 @@ class _DashboardPageState extends State<DashboardPage> {
               label: 'التوقيع',
             ),
             NavigationDestination(
-              icon: _navIcon(Icons.people_outlined, 7),
+              icon: _navIcon(_isTabLocked(7) ? Icons.lock_outline : Icons.people_outlined, 7),
               selectedIcon: _navIcon(Icons.people_rounded, 7, selected: true),
               label: 'المستخدمين',
             ),

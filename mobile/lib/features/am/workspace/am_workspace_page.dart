@@ -71,11 +71,12 @@ class _AmWorkspacePageState extends State<AmWorkspacePage> {
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'إنشاء عقد سريع',
-              onPressed: () => ContractBuilder.show(context),
-            ),
+            if (_api.role != 'super_admin')
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                tooltip: 'إنشاء عقد سريع',
+                onPressed: () => ContractBuilder.show(context),
+              ),
           ],
           bottom: const TabBar(
             isScrollable: true,

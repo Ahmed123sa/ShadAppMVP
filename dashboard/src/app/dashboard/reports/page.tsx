@@ -9,6 +9,32 @@ const STATUS_LABELS: Record<string, string> = {
   draft: 'مسودة', sent: 'مرسل', client_approved: 'موافقة عميل', client_rejected: 'رفض عميل',
   company_approved: 'موافقة شركة', completed: 'مكتمل', archived: 'مؤرشف',
 };
+const ACTION_LABELS: Record<string, string> = {
+  'contract.created': 'إنشاء عقد',
+  'contract.sent': 'إرسال عقد',
+  'contract.client_approved': 'اعتماد العميل للعقد',
+  'contract.client_rejected': 'رفض العميل للعقد',
+  'contract.edit_requested': 'طلب تعديل العقد',
+  'contract.company_approved': 'اعتماد الشركة للعقد',
+  'contract.completed': 'إكمال العقد',
+  'contract.archived': 'أرشفة العقد',
+  'workspace.created': 'إنشاء مساحة عمل',
+  'workspace.activated': 'تفعيل مساحة العمل',
+  'payment.submitted': 'تقديم دفعة',
+  'payment.approved': 'اعتماد دفعة',
+  'payment.rejected': 'رفض دفعة',
+  'approval.created': 'إنشاء طلب موافقة',
+  'approval.approved': 'الموافقة على الطلب',
+  'approval.rejected': 'رفض الطلب',
+  'approval.edit_requested': 'طلب تعديل الموافقة',
+  'file.uploaded': 'رفع ملف',
+  'file.approved': 'الموافقة على الملف',
+  'file.rejected': 'رفض الملف',
+  'login': 'تسجيل دخول',
+  'meeting.created': 'إنشاء اجتماع',
+  'client.created': 'إنشاء عميل',
+  'client.deleted': 'حذف عميل',
+};
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<any>(null);
@@ -112,8 +138,8 @@ export default function ReportsPage() {
           {logs.length === 0 && <p className="text-zinc-400 text-sm">لا توجد سجلات</p>}
           {logs.map((log: any) => (
             <div key={log.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
-              <span>{log.action}</span>
-              <span className="text-zinc-400 text-xs">{log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}</span>
+              <span><span className="font-medium">{ACTION_LABELS[log.action] || log.action}</span>{log.user?.name ? <span className="text-zinc-400 mr-2">بواسطة {log.user.name}</span> : null}</span>
+              <span className="text-zinc-400 text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}</span>
             </div>
           ))}
         </div>

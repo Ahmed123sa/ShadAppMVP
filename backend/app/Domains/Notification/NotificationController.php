@@ -2,8 +2,11 @@
 
 namespace App\Domains\Notification;
 
+use App\Models\Approval;
 use App\Models\Client;
+use App\Models\Contract;
 use App\Models\MobileNotificationToken;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\FirebaseService;
@@ -19,7 +22,7 @@ class NotificationController extends Controller
     {
         $request->validate([
             'token' => 'required|string',
-            'device_type' => 'required|in:ios,android',
+            'device_type' => 'required|in:ios,android,web',
         ]);
 
         $user = $request->user() ?? $request->user('sanctum:client');
@@ -67,9 +70,41 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        $allNotifications = $user?->notifications()->latest()->get() ?? collect();
+
+        if ($user instanceof User && $user->isAccountManager()) {
+            $workspaceIds = $user->managedClients()
+                ->with('workspace')
+                ->get()
+                ->pluck('workspace.id')
+                ->filter()
+                ->toArray();
+
+            $allNotifications = $allNotifications->filter(function ($n) use ($workspaceIds) {
+                $data = $n->data ?? [];
+                if (isset($data['contract_id'])) {
+                    $contract = Contract::find($data['contract_id']);
+                    return $contract && in_array($contract->workspace_id, $workspaceIds);
+                }
+                if (isset($data['payment_id'])) {
+                    $payment = Payment::find($data['payment_id']);
+                    return $payment && in_array($payment->workspace_id, $workspaceIds);
+                }
+                if (isset($data['approval_id'])) {
+                    $approval = Approval::find($data['approval_id']);
+                    return $approval && in_array($approval->workspace_id, $workspaceIds);
+                }
+                return true;
+            })->values();
+        }
+
+        $unreadCount = $allNotifications->whereNull('read_at')->count();
+        $notifications = $allNotifications->take(50);
+
         return response()->json([
-            'notifications' => $user?->notifications()->latest()->take(20)->get() ?? [],
-            'unread_count' => $user?->unreadNotifications()->count() ?? 0,
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount,
         ]);
     }
 

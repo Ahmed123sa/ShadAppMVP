@@ -11,7 +11,8 @@ import '../../core/widgets/error_state.dart';
 
 class ContractsPage extends StatefulWidget {
   final VoidCallback? onGoToPayments;
-  const ContractsPage({super.key, this.onGoToPayments});
+  final ValueNotifier<int>? refreshNotifier;
+  const ContractsPage({super.key, this.onGoToPayments, this.refreshNotifier});
 
 
   @override
@@ -23,11 +24,16 @@ class _ContractsPageState extends State<ContractsPage> {
   List<dynamic> _contracts = [];
   bool _loading = true;
   String? _error;
+  VoidCallback? _refreshListener;
 
   @override
   void initState() {
     super.initState();
     _load();
+    if (widget.refreshNotifier != null) {
+      _refreshListener = () { if (mounted) _load(); };
+      widget.refreshNotifier!.addListener(_refreshListener!);
+    }
   }
 
   Future<void> _load() async {
@@ -48,7 +54,6 @@ class _ContractsPageState extends State<ContractsPage> {
   Future<void> _clientAction(int contractId, String action) async {
     final labels = {
       'approved': 'موافقة',
-      'rejected': 'رفض',
       'edit_requested': 'طلب تعديل',
     };
 
@@ -67,8 +72,8 @@ class _ContractsPageState extends State<ContractsPage> {
         ),
       );
       if (confirm != true) return;
-    } else if (action == 'rejected' || action == 'edit_requested') {
-      reason = await _showReasonDialog(action);
+    } else if (action == 'edit_requested') {
+      reason = await _showReasonDialog();
       if (reason == null) return;
     } else {
       final confirm = await showDialog<bool>(
@@ -99,10 +104,10 @@ class _ContractsPageState extends State<ContractsPage> {
     }
   }
 
-  Future<String?> _showReasonDialog(String action) async {
+  Future<String?> _showReasonDialog() async {
     final controller = TextEditingController();
-    final label = action == 'rejected' ? 'سبب الرفض' : 'التعديلات المطلوبة';
-    final hint = action == 'rejected' ? 'اذكر سبب الرفض...' : 'اذكر التعديلات المطلوبة...';
+    final label = 'التعديلات المطلوبة';
+    final hint = 'اذكر التعديلات المطلوبة...';
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -119,6 +124,9 @@ class _ContractsPageState extends State<ContractsPage> {
 
   @override
   void dispose() {
+    if (_refreshListener != null && widget.refreshNotifier != null) {
+      widget.refreshNotifier!.removeListener(_refreshListener!);
+    }
     super.dispose();
   }
 
@@ -233,23 +241,7 @@ class _ContractsPageState extends State<ContractsPage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: SizedBox(
-                    height: 32,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _clientAction(c['id'], 'rejected'),
-                      icon: const Icon(Icons.close, size: 14),
-                      label: const Text('رفض', style: TextStyle(fontSize: 11)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: ShadColors.error,
-                        side: const BorderSide(color: ShadColors.error),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                    ),
-                  ),
-                ),
+
               ]),
             ),
           if (status == 'company_approved')
@@ -275,10 +267,14 @@ class _ContractsPageState extends State<ContractsPage> {
                           final url = _api.resolveFileUrl(c['pdf_url'] as String);
                           final uri = Uri.tryParse(url);
                           final messenger = ScaffoldMessenger.of(context);
-                          if (uri != null && await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          if (uri != null) {
+                            try {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } catch (_) {
+                              messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                            }
                           } else {
-                            messenger.showSnackBar(const SnackBar(content: Text('فشل فتح الملف')));
+                            messenger.showSnackBar(const SnackBar(content: Text('رابط الملف غير صالح')));
                           }
                         },
                         child: const Icon(Icons.download, size: 16, color: ShadColors.success),
@@ -348,8 +344,8 @@ class _ContractDetailModalState extends State<_ContractDetailModal> {
       await _api.multipartPost('/workspaces/$wsId/files', fields, file: file);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم رفع المستند')));
       widget.onRefresh();
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل رفع المستند')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل رفع المستند: $e')));
     }
     if (mounted) setState(() => _uploading = false);
   }
@@ -533,23 +529,7 @@ class _ContractDetailModalState extends State<_ContractDetailModal> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      await widget.onAction(c['id'], 'rejected');
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('رفض'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: ShadColors.error,
-                      side: const BorderSide(color: ShadColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                ),
+
               ]),
             ],
 

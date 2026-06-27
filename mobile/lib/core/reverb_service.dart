@@ -15,8 +15,13 @@ class ReverbService {
   WebSocketChannel? _channel;
   Timer? _pingTimer;
   int? _currentWorkspaceId;
+  int? _currentUserId;
+  bool _isClientChannel = false;
+  String? _socketId;
+  DateTime _lastNotifTime = DateTime.now().subtract(const Duration(seconds: 1));
   void Function(Map<String, dynamic>)? onMessageReceived;
   void Function()? onContractStatusChanged;
+  void Function()? onNotificationReceived;
 
   void configure({String? host, String? port, String? key}) {
     if (host != null) this.host = host;
@@ -34,6 +39,29 @@ class ReverbService {
 
   Future<void> connect(int workspaceId) async {
     _currentWorkspaceId = workspaceId;
+    _currentUserId = null;
+    _isClientChannel = false;
+    await _connectAndListen();
+    _subscribe('workspace.$workspaceId');
+  }
+
+  Future<void> connectForUser(int userId) async {
+    _currentUserId = userId;
+    _isClientChannel = false;
+    _currentWorkspaceId = null;
+    await _connectAndListen();
+    await _subscribePrivateChannel('App.Models.User.$userId');
+  }
+
+  Future<void> connectForClient(int clientId) async {
+    _currentUserId = clientId;
+    _isClientChannel = true;
+    _currentWorkspaceId = null;
+    await _connectAndListen();
+    await _subscribePrivateChannel('App.Models.Client.$clientId');
+  }
+
+  Future<void> _connectAndListen() async {
     await _disconnect();
     _autoConfigureFromApi();
 
@@ -42,8 +70,6 @@ class ReverbService {
     try {
       _channel = WebSocketChannel.connect(Uri.parse(url));
       await _channel!.ready;
-
-      _subscribe('workspace.$workspaceId');
 
       _pingTimer = Timer.periodic(const Duration(seconds: 25), (_) {
         _send({'event': 'pusher:ping', 'data': {}});
@@ -54,12 +80,26 @@ class ReverbService {
           final msg = jsonDecode(data as String) as Map<String, dynamic>;
           final event = msg['event'] as String?;
           if (event == 'pusher:connection_established') {
-            _subscribe('workspace.$workspaceId');
+            _socketId = _extractSocketId(msg['data']);
+            if (_currentUserId != null) {
+              final channel = _isClientChannel
+                  ? 'App.Models.Client.$_currentUserId'
+                  : 'App.Models.User.$_currentUserId';
+              _subscribePrivateChannel(channel);
+            }
+            if (_currentWorkspaceId != null) {
+              _subscribe('workspace.$_currentWorkspaceId');
+            }
           } else if (event == 'message.sent') {
             final payload = jsonDecode(msg['data'] as String) as Map<String, dynamic>;
             onMessageReceived?.call(payload);
           } else if (event == 'contract.status_changed') {
             onContractStatusChanged?.call();
+          } else if (event == 'Illuminate\\Notifications\\Events\\BroadcastNotificationCreated') {
+            final now = DateTime.now();
+            if (now.difference(_lastNotifTime) < const Duration(seconds: 1)) return;
+            _lastNotifTime = now;
+            onNotificationReceived?.call();
           }
         },
         onError: (_) => _reconnect(),
@@ -67,6 +107,43 @@ class ReverbService {
       );
     } catch (_) {
       _reconnect();
+    }
+  }
+
+  String? _extractSocketId(dynamic data) {
+    if (data is String) {
+      try {
+        final parsed = jsonDecode(data);
+        return parsed['socket_id'] as String?;
+      } catch (_) {
+        return null;
+      }
+    }
+    if (data is Map) {
+      return data['socket_id'] as String?;
+    }
+    return null;
+  }
+
+  Future<void> _subscribePrivateChannel(String channel) async {
+    if (_socketId == null) {
+      _subscribe(channel);
+      return;
+    }
+    try {
+      final api = ApiClient();
+      final response = await api.post('/broadcasting/auth', {
+        'channel_name': 'private-$channel',
+        'socket_id': _socketId,
+      });
+      final auth = response['auth'] as String?;
+      if (auth != null) {
+        _send({'event': 'pusher:subscribe', 'data': {'channel': 'private-$channel', 'auth': auth}});
+      } else {
+        _subscribe(channel);
+      }
+    } catch (_) {
+      _subscribe(channel);
     }
   }
 
@@ -79,21 +156,29 @@ class ReverbService {
   }
 
   Future<void> _reconnect() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 10));
     if (_currentWorkspaceId != null) {
       connect(_currentWorkspaceId!);
+    } else if (_currentUserId != null) {
+      if (_isClientChannel) {
+        connectForClient(_currentUserId!);
+      } else {
+        connectForUser(_currentUserId!);
+      }
     }
   }
 
   Future<void> _disconnect() async {
     _pingTimer?.cancel();
     _pingTimer = null;
+    _socketId = null;
     await _channel?.sink.close();
     _channel = null;
   }
 
   void disconnect() {
     _currentWorkspaceId = null;
+    _currentUserId = null;
     _disconnect();
   }
 }

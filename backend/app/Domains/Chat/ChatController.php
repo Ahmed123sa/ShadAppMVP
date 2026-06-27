@@ -7,6 +7,7 @@ use App\Models\Approval;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Domains\Chat\MessageSent;
+use App\Notifications\ChatMessageSentNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -87,6 +88,21 @@ class ChatController extends Controller
 
         broadcast(new MessageSent($message))->toOthers();
 
+        // إرسال إشعار FCM للطرف الآخر
+        $recipient = null;
+        if ($senderType === \App\Models\User::class) {
+            $recipient = $workspace->client;
+        } elseif ($senderType === \App\Models\Client::class) {
+            $recipient = $workspace->manager;
+        }
+        if ($recipient) {
+            try {
+                $recipient->notify(new ChatMessageSentNotification($message));
+            } catch (\Exception $e) {
+                Log::warning('Chat notification failed: ' . $e->getMessage());
+            }
+        }
+
         return response()->json(['message' => $message->load('sender')], 201);
     }
 
@@ -118,7 +134,7 @@ class ChatController extends Controller
     public function respond(Request $request, ChatMessage $chatMessage): JsonResponse
     {
         $request->validate([
-            'action' => 'required|in:approved,rejected,edit_requested',
+            'action' => 'required|in:approved,edit_requested',
         ]);
 
         $user = $request->user();
@@ -134,7 +150,7 @@ class ChatController extends Controller
         $approval = $chatMessage->approval;
         if ($approval) {
             $approval->update([
-                'status' => $request->action === 'approved' ? 'approved' : ($request->action === 'rejected' ? 'rejected' : 'edit_requested'),
+                'status' => $request->action === 'approved' ? 'approved' : 'edit_requested',
                 'client_action' => $request->action,
                 'signature' => $signature,
                 'responded_at' => now(),

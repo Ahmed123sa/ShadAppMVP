@@ -41,7 +41,7 @@ export interface Contract {
 }
 
 export type ContractStatus =
-  | 'draft' | 'sent' | 'client_approved' | 'client_rejected'
+  | 'draft' | 'sent' | 'client_approved'
   | 'edit_requested' | 'company_approved' | 'completed' | 'archived';
 
 export interface ContractClause {
@@ -59,7 +59,7 @@ export interface Payment {
   amount: string | number;
   method_type: string;
   proof_file_url?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved';
   notes?: string;
   reviewed_by?: number;
   reviewed_at?: string;
@@ -74,7 +74,7 @@ export interface Approval {
   workspace_id: number;
   title: string;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'edit_requested';
+  status: 'pending' | 'approved' | 'edit_requested';
   reference_no: string;
   responded_at?: string;
   signature?: string;

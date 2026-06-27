@@ -2,7 +2,9 @@
 
 namespace App\Domains\Payment;
 
+use App\Models\Client;
 use App\Models\Payment;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\PaymentCreated;
@@ -18,6 +20,22 @@ class PaymentController extends Controller
 {
     const BUSINESS_METHODS = ['bank_transfer', 'swift', 'corporate_account'];
     const INDIVIDUAL_METHODS = ['instapay', 'vodafone_cash', 'mobile_wallet'];
+
+    public function pending(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = Payment::with(['workspace.client', 'contract'])
+            ->where('status', 'pending');
+
+        if ($user instanceof User && $user->isAccountManager()) {
+            $clientIds = $user->managedClients()->pluck('id');
+            $query->whereIn('client_id', $clientIds);
+        }
+
+        return response()->json([
+            'payments' => $query->latest()->take(50)->get(),
+        ]);
+    }
 
     public function index(Workspace $workspace): JsonResponse
     {
@@ -93,58 +111,45 @@ class PaymentController extends Controller
             return response()->json(['message' => 'غير مصرح بهذه الإجراء'], 403);
         }
 
-        $request->validate(['action' => 'required|in:approved,rejected']);
+        $request->validate(['action' => 'required|in:approved']);
 
         $payment->update([
-            'status' => $request->action,
+            'status' => 'approved',
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
 
         $workspace = $payment->workspace;
-
-        // Force-refresh workspace from DB to avoid stale relationship cache
         $workspace = $workspace->fresh();
 
-        $paymentApproved = $workspace->payments()->where('status', 'approved')->exists();
-
-        Log::info('Payment review activation check', [
-            'payment_id' => $payment->id,
-            'action' => $request->action,
-            'workspace_id' => $workspace->id,
-            'payment_approved' => $paymentApproved,
-        ]);
-
-        if ($request->action === 'approved') {
-            $reviewerName = $request->user()?->name ?? 'system';
-            // Auto-company-approve client-signed contracts
-            $workspace->contracts()->where('status', 'client_approved')->each(function (Contract $contract) use ($reviewerName) {
-                $contract->update([
-                    'status' => 'company_approved',
-                    'company_signed_at' => now(),
-                    'company_signature_data' => $reviewerName,
-                    'company_signature_type' => 'text',
-                ]);
-                ContractCompanyApproved::dispatch($contract);
-            });
-            // Mark company_approved contracts as completed
-            $workspace->contracts()->where('status', 'company_approved')->update(['status' => 'completed']);
-        }
+        $reviewerName = $request->user()?->name ?? 'system';
+        $workspace->contracts()->where('status', 'client_approved')->each(function (Contract $contract) use ($reviewerName) {
+            $contract->update([
+                'status' => 'company_approved',
+                'company_signed_at' => now(),
+                'company_signature_data' => $reviewerName,
+                'company_signature_type' => 'text',
+            ]);
+            ContractCompanyApproved::dispatch($contract, true);
+        });
+        $workspace->contracts()->where('status', 'company_approved')->update(['status' => 'completed']);
+        $payment->client->update(['payment_status' => 'approved']);
 
         $contractApproved = $workspace->contracts()->whereIn('status', ['completed', 'company_approved', 'client_approved'])->exists();
+        $paymentApproved = true;
 
         if ($contractApproved && $paymentApproved) {
             $workspace->update(['status' => 'active', 'activated_at' => now()]);
-            Log::info('Workspace activated after payment review', ['workspace_id' => $workspace->id]);
+            Log::info('Workspace activated after payment approval', ['workspace_id' => $workspace->id]);
         }
 
-        PaymentReviewed::dispatch($payment, $request->action);
+        PaymentReviewed::dispatch($payment, 'approved');
 
         AuditLog::create([
             'auditable_type' => Payment::class,
             'auditable_id' => $payment->id,
             'user_id' => $request->user()->id,
-            'action' => 'payment.' . $request->action,
+            'action' => 'payment.approved',
             'ip_address' => $request->ip(),
         ]);
 

@@ -16,7 +16,7 @@ class SubUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:sub_users',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
         ]);
 
         $subUser = $client->subUsers()->create([
