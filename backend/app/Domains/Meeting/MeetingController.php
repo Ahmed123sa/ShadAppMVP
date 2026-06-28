@@ -7,48 +7,39 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\MeetingCreated;
+use App\Http\Requests\StoreMeetingRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
 
 class MeetingController extends Controller
 {
     public function allMeetings(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (!$user || $user->role !== 'super_admin') {
-            return response()->json(['message' => 'غير مصرح'], 403);
-        }
+        $this->authorize('viewAny', Meeting::class);
 
-        $managerIds = User::where('super_admin_id', $user->id)->pluck('id');
+        $user = $request->user();
         $meetings = Meeting::with('workspace.client', 'contract', 'approval')
-            ->whereHas('workspace', fn($q) => $q->whereIn('manager_id', $managerIds))
+            ->when($user->isAccountManager(), fn($q) => $q->whereHas('workspace', fn($q) => $q->where('manager_id', $user->id)))
             ->latest()
-            ->get();
+            ->paginate(30);
 
         return response()->json(['meetings' => $meetings]);
     }
 
-    public function index(Workspace $workspace): JsonResponse
+    public function index(Request $request, Workspace $workspace): JsonResponse
     {
-        return response()->json(['meetings' => $workspace->meetings()->with('contract', 'approval')->latest()->get()]);
+        $this->authorize('viewAny', Meeting::class);
+
+        return response()->json(['meetings' => $workspace->meetings()->with('contract', 'approval')->latest()->paginate(30)]);
     }
 
-    public function store(Request $request, Workspace $workspace): JsonResponse
+    public function store(StoreMeetingRequest $request, Workspace $workspace): JsonResponse
     {
-        if ($request->user() && $request->user()->role === 'super_admin') {
+        if (!$request->user()->isSuperAdmin() && $workspace->manager_id !== $request->user()->id) {
             return response()->json(['message' => 'غير مصرح'], 403);
         }
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'scheduled_at' => 'required|date',
-            'duration_minutes' => 'integer|min:15|max:480',
-            'contract_id' => 'nullable|exists:contracts,id',
-            'approval_id' => 'nullable|exists:approvals,id',
-            'notes' => 'nullable|string',
-        ]);
 
         $meetingData = [
             'workspace_id' => $workspace->id,

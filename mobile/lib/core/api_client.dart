@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiClient {
-  String baseUrl = 'http://192.168.1.103:8000/api';
+  String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api';
   final Duration _timeout = const Duration(seconds: 30);
   String? _token;
   int? userId;
@@ -13,13 +15,15 @@ class ApiClient {
   String? role;
   String? userName;
 
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   static final ApiClient _instance = ApiClient._();
   ApiClient._();
   factory ApiClient() => _instance;
 
   Future<void> init() async {
+    _token = await _secureStorage.read(key: 'token');
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
     baseUrl = prefs.getString('base_url') ?? baseUrl;
     role = prefs.getString('role');
     userId = prefs.getInt('user_id');
@@ -29,14 +33,12 @@ class ApiClient {
 
   Future<void> setToken(String token) async {
     _token = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
+    await _secureStorage.write(key: 'token', value: token);
   }
 
   Future<String?> getToken() async {
     if (_token != null) return _token;
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
+    _token = await _secureStorage.read(key: 'token');
     return _token;
   }
 
@@ -46,8 +48,8 @@ class ApiClient {
     workspaceId = null;
     role = null;
     userName = null;
+    await _secureStorage.delete(key: 'token');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
     await prefs.remove('role');
     await prefs.remove('user_id');
     await prefs.remove('workspace_id');

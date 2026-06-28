@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import ContractStatusStepper from '@/components/ui/ContractStatusStepper';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -50,6 +51,7 @@ export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number
             </div>
             <StatusBadge status={c.status} />
           </div>
+          <ContractStatusStepper status={c.status} compact />
           <div className="mt-2 flex gap-2">
             <button onClick={() => setViewContract(c)} className="text-xs text-blue-600 hover:underline">
               عرض التفاصيل

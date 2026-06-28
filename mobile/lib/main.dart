@@ -3,15 +3,22 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
 import 'core/theme.dart';
 import 'core/api_client.dart';
 import 'core/router.dart';
 import 'core/locale_provider.dart';
 import 'core/notification_service.dart';
+import 'providers/auth_provider.dart';
+import 'providers/contract_provider.dart';
+import 'providers/client_provider.dart';
+import 'providers/notification_provider.dart';
 import 'package:shadapp_client/generated/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
 
   Map<String, String>? pendingNotifData;
   GoRouter? router;
@@ -57,7 +64,17 @@ void main() async {
 
   final localeProvider = LocaleProvider();
   await localeProvider.init();
-  runApp(ShadApp(router: router, localeProvider: localeProvider));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ContractProvider()),
+        ChangeNotifierProvider(create: (_) => ClientProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+      ],
+      child: ShadApp(router: router, localeProvider: localeProvider),
+    ),
+  );
 }
 
 void _navigateFromNotification(Map<String, String> data, GoRouter router) {

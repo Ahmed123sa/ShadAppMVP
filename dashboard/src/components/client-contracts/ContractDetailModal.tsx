@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import api from '@/lib/api';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import ContractStatusStepper from '@/components/ui/ContractStatusStepper';
 
 export default function ContractDetailModal({ contract, wsId, onClose, onAction, onUpload }: {
   contract: any;
@@ -44,6 +45,8 @@ export default function ContractDetailModal({ contract, wsId, onClose, onAction,
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xl">&times;</button>
         </div>
+
+        <ContractStatusStepper status={contract.status} />
 
         {contract.value > 0 && (
           <p className="text-sm text-zinc-600 mb-1">القيمة: <span className="font-medium">{contract.value} ر.س</span></p>

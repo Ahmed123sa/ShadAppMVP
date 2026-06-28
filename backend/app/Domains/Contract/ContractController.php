@@ -12,23 +12,23 @@ use App\Events\ContractSent;
 use App\Events\ContractClientApproved;
 use App\Events\ContractCompanyApproved;
 use App\Events\ContractCompleted;
+use App\Http\Requests\StoreContractRequest;
+use App\Http\Requests\UpdateContractRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 class ContractController extends Controller
 {
     public function allContracts(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (!$user || $user->role !== 'super_admin') {
-            return response()->json(['message' => 'غير مصرح'], 403);
-        }
+        $this->authorize('viewAny', Contract::class);
 
+        $user = $request->user();
         $contracts = Contract::with('workspace.client')
-            ->whereHas('workspace', fn($q) => $q->whereIn('manager_id', $user->managedAccounts()->pluck('id')))
+            ->when($user->isAccountManager(), fn($q) => $q->whereHas('workspace', fn($q) => $q->where('manager_id', $user->id)))
             ->latest()
-            ->get();
+            ->paginate(30);
 
         return response()->json(['contracts' => $contracts]);
     }
@@ -39,30 +39,15 @@ class ContractController extends Controller
         return response()->json(['templates' => $templates]);
     }
 
-    public function index(Workspace $workspace): JsonResponse
+    public function index(Request $request, Workspace $workspace): JsonResponse
     {
-        return response()->json(['contracts' => $workspace->contracts()->with('clauses', 'requiredDocuments.files')->latest()->get()]);
+        $this->authorize('viewAny', Contract::class);
+
+        return response()->json(['contracts' => $workspace->contracts()->with('clauses', 'requiredDocuments.files')->latest()->paginate(30)]);
     }
 
-    public function store(Request $request, Workspace $workspace): JsonResponse
+    public function store(StoreContractRequest $request, Workspace $workspace): JsonResponse
     {
-        if ($request->user() && $request->user()->role === 'super_admin') {
-            return response()->json(['message' => 'غير مصرح'], 403);
-        }
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'value' => 'nullable|numeric|min:0',
-            'currency' => 'nullable|string|max:10',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'clauses' => 'nullable|array',
-            'clauses.*.content' => 'required|string',
-            'clauses.*.type' => 'in:fixed,optional,custom',
-            'required_documents' => 'nullable|array',
-            'required_documents.*.name' => 'required|string|max:255',
-            'required_documents.*.description' => 'nullable|string',
-        ]);
 
         $contract = $workspace->contracts()->create([
             'title' => $request->title,
@@ -106,25 +91,15 @@ class ContractController extends Controller
         return response()->json(['contract' => $contract->load('clauses', 'requiredDocuments')], 201);
     }
 
-    public function show(Contract $contract): JsonResponse
+    public function show(Request $request, Contract $contract): JsonResponse
     {
+        $this->authorize('view', $contract);
+
         return response()->json(['contract' => $contract->load('clauses', 'workspace', 'requiredDocuments')]);
     }
 
-    public function update(Request $request, Contract $contract): JsonResponse
+    public function update(UpdateContractRequest $request, Contract $contract): JsonResponse
     {
-        $request->validate([
-            'title' => 'string|max:255',
-            'value' => 'nullable|numeric|min:0',
-            'currency' => 'nullable|string|max:10',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'clauses' => 'nullable|array',
-            'clauses.*.content' => 'required|string',
-            'clauses.*.type' => 'in:fixed,optional,custom',
-            'required_documents' => 'nullable|array',
-            'required_documents.*.name' => 'required|string|max:255',
-        ]);
 
         $contract->update($request->only(['title', 'value', 'currency', 'start_date', 'end_date']));
 
@@ -163,6 +138,8 @@ class ContractController extends Controller
 
     public function destroy(Request $request, Contract $contract): JsonResponse
     {
+        $this->authorize('delete', $contract);
+
         $contract->delete();
 
         AuditLog::create([
@@ -178,6 +155,8 @@ class ContractController extends Controller
 
     public function send(Request $request, Contract $contract): JsonResponse
     {
+        $this->authorize('send', $contract);
+
         $contract->update(['status' => 'sent']);
 
         event(new ContractSent($contract));
@@ -220,9 +199,7 @@ class ContractController extends Controller
 
     public function companyApprove(Request $request, Contract $contract): JsonResponse
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['message' => 'غير مصرح بهذا الإجراء'], 403);
-        }
+        $this->authorize('companyApprove', $contract);
 
         $request->validate([
             'signature' => 'nullable|string',
@@ -257,6 +234,8 @@ class ContractController extends Controller
 
     public function complete(Request $request, Contract $contract): JsonResponse
     {
+        $this->authorize('complete', $contract);
+
         $contract->update(['status' => 'completed']);
 
         event(new ContractCompleted($contract));
@@ -288,6 +267,8 @@ class ContractController extends Controller
 
     public function archive(Request $request, Contract $contract): JsonResponse
     {
+        $this->authorize('archive', $contract);
+
         if ($contract->workspace->payments()->where('status', 'approved')->exists()) {
             return response()->json(['message' => 'لا يمكن أرشفة العقد بعد الموافقة على المدفوعات'], 422);
         }

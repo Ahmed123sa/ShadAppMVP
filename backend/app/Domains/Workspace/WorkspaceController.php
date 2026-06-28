@@ -6,12 +6,14 @@ use App\Models\Workspace;
 use App\Models\AuditLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 class WorkspaceController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Workspace::class);
+
         $request->validate(['client_id' => 'required|exists:clients,id']);
 
         $workspace = Workspace::create([
@@ -30,10 +32,12 @@ class WorkspaceController extends Controller
         return response()->json(['workspace' => $workspace], 201);
     }
 
-    public function show(Workspace $workspace): JsonResponse
+    public function show(Request $request, Workspace $workspace): JsonResponse
     {
+        $this->authorize('view', $workspace);
+
         $workspace->load([
-            'client', 'contracts.clauses', 'payments', 'approvals.certificate',
+            'client', 'contracts.clauses', 'contracts.requiredDocuments', 'payments', 'approvals.certificate',
             'meetings', 'files', 'chatMessages.sender',
         ]);
 
@@ -42,6 +46,8 @@ class WorkspaceController extends Controller
 
     public function activate(Request $request, Workspace $workspace): JsonResponse
     {
+        $this->authorize('activate', $workspace);
+
         $workspace->update(['status' => 'active', 'activated_at' => now()]);
 
         AuditLog::create([

@@ -4,6 +4,7 @@ namespace App\Domains\Auth;
 
 use App\Models\User;
 use App\Models\Client;
+use App\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -13,12 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
 
         $user = User::where('email', $request->email)->first();
 
@@ -72,10 +69,15 @@ class AuthController extends Controller
 
     public function registerSuperAdmin(Request $request): JsonResponse
     {
+        if (User::where('role', User::ROLE_SUPER_ADMIN)->exists()) {
+            return response()->json(['message' => 'Registration is closed.'], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
+            'official_email' => 'nullable|email',
         ]);
 
         $user = User::create([
@@ -83,13 +85,14 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => $request->password,
             'role' => User::ROLE_SUPER_ADMIN,
+            'official_email' => $request->official_email,
         ]);
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $user->role],
+            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $user->role, 'official_email' => $user->official_email],
         ], 201);
     }
 

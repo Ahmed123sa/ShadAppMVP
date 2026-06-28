@@ -7,12 +7,14 @@ use App\Models\Client;
 use App\Models\AuditLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 class SubUserController extends Controller
 {
     public function store(Request $request, Client $client): JsonResponse
     {
+        $this->authorize('create', SubUser::class);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:sub_users',
@@ -39,6 +41,8 @@ class SubUserController extends Controller
 
     public function destroy(Request $request, SubUser $subUser): JsonResponse
     {
+        $this->authorize('delete', $subUser);
+
         $subUser->delete();
 
         AuditLog::create([

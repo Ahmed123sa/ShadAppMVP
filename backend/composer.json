@@ -11,9 +11,12 @@
         "laravel/reverb": "^1.10",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
-        "mpdf/mpdf": "^8.3"
+        "league/flysystem-aws-s3-v3": "^3.35",
+        "mpdf/mpdf": "^8.3",
+        "predis/predis": "*"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^4.3",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",

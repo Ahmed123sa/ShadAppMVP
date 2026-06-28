@@ -15,9 +15,17 @@ export default function ClientsPage() {
   const [editForm, setEditForm] = useState({ company_name: '', contact_person: '', phone: '', notes: '' });
   const [createError, setCreateError] = useState('');
 
-  useEffect(() => {
-    api.get('/clients').then(({ data }) => setClients(data.clients)).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchClients = (p: number) => {
+    api.get(`/clients?page=${p}&per_page=30`).then(({ data }) => {
+      setClients(data.clients?.data || data.clients || []);
+      setTotalPages(data.clients?.last_page || 1);
+    }).catch(() => {}).finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchClients(1); }, []);
 
   const createClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +145,15 @@ export default function ClientsPage() {
             ))}
           </tbody>
         </table>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 p-4 border-t">
+            <button onClick={() => { const p = page - 1; setPage(p); fetchClients(p); }} disabled={page <= 1}
+              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">السابق</button>
+            <span className="text-sm text-zinc-500">الصفحة {page} من {totalPages}</span>
+            <button onClick={() => { const p = page + 1; setPage(p); fetchClients(p); }} disabled={page >= totalPages}
+              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">التالي</button>
+          </div>
+        )}
       </div>
     </div>
   );

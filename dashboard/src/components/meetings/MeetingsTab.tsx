@@ -15,8 +15,8 @@ export default function MeetingsTab({ wsId }: { wsId: number }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/workspaces/${wsId}/meetings`).then(({ data }) => setMeetings(data.meetings || [])).catch(() => {});
-    api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts || [])).catch(() => {}).finally(() => setLoading(false));
+    api.get(`/workspaces/${wsId}/meetings`).then(({ data }) => setMeetings(data.meetings?.data || data.meetings || [])).catch(() => {});
+    api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts?.data || data.contracts || [])).catch(() => {}).finally(() => setLoading(false));
   }, [wsId]);
 
   const create = async () => {

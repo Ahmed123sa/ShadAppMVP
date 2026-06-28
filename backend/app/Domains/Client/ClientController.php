@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\Workspace;
 use App\Events\ClientCreated;
+use App\Http\Requests\StoreClientRequest;
+use App\Http\Requests\UpdateClientRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -18,36 +20,19 @@ class ClientController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
+        $this->authorize('viewAny', Client::class);
 
-        $clients = Client::with('workspace')
-            ->when($isAM, fn($q) => $q->where('manager_id', $user->id))
+        $user = $request->user();
+        $clients = Client::with('workspace', 'subUsers', 'payments')
+            ->when($user->isAccountManager(), fn($q) => $q->where('manager_id', $user->id))
             ->latest()
-            ->get();
+            ->paginate(30);
 
         return response()->json(['clients' => $clients]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreClientRequest $request): JsonResponse
     {
-        if ($request->user() && $request->user()->role === 'super_admin') {
-            return response()->json(['message' => 'غير مصرح'], 403);
-        }
-
-        $request->validate([
-            'company_name' => 'required|string|max:255',
-            'contact_person' => 'required|string|max:255',
-            'email' => 'required|email|unique:clients',
-            'phone' => 'required|string|max:20',
-            'contract_value' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-            'country' => 'nullable|string|max:100',
-            'industry' => 'nullable|string|max:100',
-            'client_type' => 'nullable|string|in:business,individual',
-            'password' => 'nullable|string|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
-            'send_email' => 'boolean',
-        ]);
 
         $password = $request->password ?? Str::random(12);
 
@@ -92,23 +77,15 @@ class ClientController extends Controller
 
     public function show(Request $request, Client $client): JsonResponse
     {
+        $this->authorize('view', $client);
+
         $client->load('workspace.contracts', 'workspace.payments', 'subUsers', 'payments');
 
         return response()->json(['client' => $client]);
     }
 
-    public function update(Request $request, Client $client): JsonResponse
+    public function update(UpdateClientRequest $request, Client $client): JsonResponse
     {
-        $request->validate([
-            'company_name' => 'string|max:255',
-            'contact_person' => 'string|max:255',
-            'phone' => 'string|max:20',
-            'country' => 'nullable|string|max:100',
-            'industry' => 'nullable|string|max:100',
-            'notes' => 'nullable|string',
-            'status' => 'in:active,inactive,blocked',
-            'password' => 'nullable|string|min:8|regex:/[A-Za-z]/|regex:/[0-9]/',
-        ]);
 
         $fillableFields = ['company_name', 'contact_person', 'phone', 'country', 'industry', 'notes', 'status'];
         if ($request->filled('password')) {
@@ -167,6 +144,8 @@ class ClientController extends Controller
 
     public function destroy(Request $request, Client $client): JsonResponse
     {
+        $this->authorize('delete', $client);
+
         $client->delete();
 
         AuditLog::create([

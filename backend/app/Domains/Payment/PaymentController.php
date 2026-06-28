@@ -9,9 +9,11 @@ use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\PaymentCreated;
 use App\Events\PaymentReviewed;
+use App\Http\Requests\StorePaymentRequest;
+use App\Http\Requests\ReviewPaymentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
 use App\Models\Contract;
 use App\Events\ContractCompanyApproved;
@@ -23,22 +25,26 @@ class PaymentController extends Controller
 
     public function pending(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Payment::class);
+
         $user = $request->user();
         $query = Payment::with(['workspace.client', 'contract'])
             ->where('status', 'pending');
 
-        if ($user instanceof User && $user->isAccountManager()) {
+        if ($user->isAccountManager()) {
             $clientIds = $user->managedClients()->pluck('id');
             $query->whereIn('client_id', $clientIds);
         }
 
         return response()->json([
-            'payments' => $query->latest()->take(50)->get(),
+            'payments' => $query->latest()->paginate(30),
         ]);
     }
 
-    public function index(Workspace $workspace): JsonResponse
+    public function index(Request $request, Workspace $workspace): JsonResponse
     {
+        $this->authorize('viewAny', Payment::class);
+
         $client = $workspace->client;
         $methods = $client->client_type === 'individual' ? self::INDIVIDUAL_METHODS : self::BUSINESS_METHODS;
 
@@ -49,18 +55,10 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function store(Request $request, Workspace $workspace): JsonResponse
+    public function store(StorePaymentRequest $request, Workspace $workspace): JsonResponse
     {
         $client = $workspace->client;
         $methods = $client->client_type === 'individual' ? self::INDIVIDUAL_METHODS : self::BUSINESS_METHODS;
-
-        $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'currency' => 'nullable|string|max:10',
-            'method_type' => 'required|string|in:' . implode(',', $methods),
-            'proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'notes' => 'nullable|string',
-        ]);
 
         $proofFileUrl = null;
         if ($request->hasFile('proof_file')) {
@@ -101,17 +99,8 @@ class PaymentController extends Controller
         return response()->json(['payment' => $payment], 201);
     }
 
-    public function review(Request $request, Payment $payment): JsonResponse
+    public function review(ReviewPaymentRequest $request, Payment $payment): JsonResponse
     {
-        $user = $request->user();
-        $isSuperAdmin = $user->role === 'super_admin';
-        $isManager = $user->role === 'account_manager' && $payment->workspace->manager_id === $user->id;
-
-        if (!$isSuperAdmin && !$isManager) {
-            return response()->json(['message' => 'غير مصرح بهذه الإجراء'], 403);
-        }
-
-        $request->validate(['action' => 'required|in:approved']);
 
         $payment->update([
             'status' => 'approved',

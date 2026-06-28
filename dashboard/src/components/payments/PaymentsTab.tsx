@@ -15,7 +15,7 @@ export default function PaymentsTab({ wsId, client, onWorkspaceUpdate }: { wsId:
 
   useEffect(() => {
     const load = () => api.get(`/workspaces/${wsId}/payments`).then(({ data }) => {
-      setPayments(data.payments || []);
+      setPayments(data.payments?.data || data.payments || []);
     }).catch(() => {});
     load().finally(() => setLoading(false));
     const interval = setInterval(load, 30000);

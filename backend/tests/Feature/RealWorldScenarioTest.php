@@ -217,9 +217,9 @@ class RealWorldScenarioTest extends TestCase
             $response = $this->actingAsAM($manager['user'])->getJson('/api/clients');
 
             $response->assertStatus(200);
-            $response->assertJsonCount(5, 'clients');
+            $response->assertJsonCount(5, 'clients.data');
 
-            foreach ($response->json('clients') as $c) {
+            foreach ($response->json('clients.data') as $c) {
                 $this->assertEquals($manager['user']->id, $c['manager_id']);
             }
         }
@@ -453,9 +453,9 @@ class RealWorldScenarioTest extends TestCase
         foreach ($this->allClients as $entry) {
             if ($entry['targetStage'] >= 2) $totalWithContracts++;
         }
-        $response->assertJsonCount($totalWithContracts, 'contracts');
+        $response->assertJsonCount($totalWithContracts, 'contracts.data');
 
-        foreach ($response->json('contracts') as $c) {
+        foreach ($response->json('contracts.data') as $c) {
             $this->assertArrayHasKey('title', $c);
             $this->assertArrayHasKey('status', $c);
             $this->assertArrayHasKey('value', $c);
@@ -483,7 +483,7 @@ class RealWorldScenarioTest extends TestCase
         // AM cannot see other AM's clients via index
         $saraClients = Client::where('manager_id', $sara->id)->pluck('id')->toArray();
         $response = $this->actingAsAM($ahmed)->getJson('/api/clients');
-        $returnedIds = collect($response->json('clients'))->pluck('id')->toArray();
+        $returnedIds = collect($response->json('clients.data'))->pluck('id')->toArray();
         foreach ($saraClients as $scid) {
             $this->assertNotContains($scid, $returnedIds);
         }
@@ -651,8 +651,8 @@ class RealWorldScenarioTest extends TestCase
         ])->assertStatus(201);
 
         $this->actingAsSA()->getJson('/api/all-contracts')
-            ->assertJsonCount(1, 'contracts');
+            ->assertJsonCount(1, 'contracts.data');
         $this->actingAsSA()->getJson('/api/all-meetings')
-            ->assertJsonCount(1, 'meetings');
+            ->assertJsonCount(1, 'meetings.data');
     }
 }

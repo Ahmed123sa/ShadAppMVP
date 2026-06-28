@@ -5,18 +5,42 @@ namespace App\Domains\Audit;
 use App\Models\AuditLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 
 class AuditController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $logs = AuditLog::with('user')
-            ->latest()
-            ->take(200)
-            ->get();
+        $query = AuditLog::with('user');
 
-        return response()->json(['logs' => $logs]);
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $user = $request->user();
+        if ($user->isAccountManager()) {
+            $clientIds = $user->managedClients()->pluck('id');
+            $query->where(function ($q) use ($user, $clientIds) {
+                $q->where('user_id', $user->id)
+                  ->orWhereIn('auditable_id', $clientIds);
+            });
+        }
+
+        return response()->json([
+            'logs' => $query->latest()->paginate(25),
+        ]);
     }
 
     public function reports(Request $request): JsonResponse
@@ -26,9 +50,8 @@ class AuditController extends Controller
         $contractModel = \App\Models\Contract::query();
 
         $user = $request->user();
-        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
 
-        if ($isAM) {
+        if ($user->isAccountManager()) {
             $clientModel->where('manager_id', $user->id);
             $paymentModel->whereIn('client_id', $clientModel->pluck('id'));
         }

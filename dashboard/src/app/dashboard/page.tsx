@@ -43,11 +43,11 @@ export default function DashboardHome() {
   useEffect(() => {
     if (isSA) {
       api.get('/account-managers').then(({ data }) => setManagers(data.managers)).catch(() => {}).finally(() => setLoading(false));
-      api.get('/payments/pending').then(({ data }) => setPendingPaymentsList(data.payments)).catch(() => {});
-      api.get('/all-contracts').then(({ data }) => setAllContractsList(data.contracts)).catch(() => {});
-      api.get('/all-meetings').then(({ data }) => setAllMeetingsList(data.meetings)).catch(() => {});
+      api.get('/payments/pending?per_page=30').then(({ data }) => setPendingPaymentsList(data.payments?.data || data.payments || [])).catch(() => {});
+      api.get('/all-contracts?per_page=30').then(({ data }) => setAllContractsList(data.contracts?.data || data.contracts || [])).catch(() => {});
+      api.get('/all-meetings?per_page=30').then(({ data }) => setAllMeetingsList(data.meetings?.data || data.meetings || [])).catch(() => {});
     } else {
-      api.get('/clients').then(({ data }) => setClients(data.clients)).catch(() => {}).finally(() => setLoading(false));
+      api.get('/clients').then(({ data }) => setClients(data.clients?.data || data.clients || [])).catch(() => {}).finally(() => setLoading(false));
     }
   }, [isSA]);
 
@@ -137,7 +137,7 @@ export default function DashboardHome() {
 
         <div className="bg-white rounded-xl shadow-sm border">
           <button
-            onClick={() => { setShowPendingPayments(!showPendingPayments); if (!showPendingPayments && pendingPaymentsList.length === 0) { api.get('/payments/pending').then(({ data }) => setPendingPaymentsList(data.payments)).catch(() => {}); } }}
+            onClick={() => { setShowPendingPayments(!showPendingPayments); if (!showPendingPayments && pendingPaymentsList.length === 0) { api.get('/payments/pending?per_page=30').then(({ data }) => setPendingPaymentsList(data.payments?.data || data.payments || [])).catch(() => {}); } }}
             className="w-full flex items-center justify-between p-5 hover:bg-zinc-50 transition-colors"
           >
             <div className="flex items-center gap-2">

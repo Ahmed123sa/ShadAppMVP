@@ -39,15 +39,31 @@ const ACTION_LABELS: Record<string, string> = {
 export default function ReportsPage() {
   const [reports, setReports] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [filters, setFilters] = useState({ action: '', user_id: '', date_from: '', date_to: '' });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const loadLogs = (p: number) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    params.set('page', String(p));
+    api.get(`/audit-logs?${params.toString()}`).then((res) => {
+      setLogs(res.data?.logs?.data || res.logs?.data || []);
+      const pagination = res.data?.logs || res.logs;
+      setTotalPages(pagination?.last_page || 1);
+    }).catch(() => {});
+  };
 
   const load = () => {
     api.get('/reports').then(({ data }) => setReports(data)).catch(() => {});
-    api.get('/audit-logs').then(({ data }) => setLogs(data.logs || [])).catch(() => {});
+    loadLogs(1);
+    api.get('/users').then(({ data }) => setUsers(Array.isArray(data) ? data : data.users || [])).catch(() => {});
   };
 
   useEffect(() => { load(); }, []);
+
+  const applyFilters = () => { setPage(1); loadLogs(1); };
 
   const contractsData = reports?.contracts_by_status
     ? Object.entries(reports.contracts_by_status).map(([status, count]) => ({ status: STATUS_LABELS[status] || status, count }))
@@ -69,9 +85,23 @@ export default function ReportsPage() {
 
       {/* Filters */}
       <div className="flex gap-2 items-center flex-wrap">
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
-        <button onClick={load} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">تحديث</button>
+        <select value={filters.action} onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+          className="border rounded-lg px-3 py-2 text-sm">
+          <option value="">كل الأحداث</option>
+          {Object.entries(ACTION_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+        <select value={filters.user_id} onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
+          className="border rounded-lg px-3 py-2 text-sm">
+          <option value="">كل المستخدمين</option>
+          {users.map((u: any) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
+          ))}
+        </select>
+        <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
+        <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
+        <button onClick={applyFilters} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">تطبيق</button>
       </div>
 
       {/* Summary Cards */}
@@ -143,6 +173,15 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t">
+            <button onClick={() => { const p = page - 1; setPage(p); loadLogs(p); }} disabled={page <= 1}
+              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">السابق</button>
+            <span className="text-sm text-zinc-500">الصفحة {page} من {totalPages}</span>
+            <button onClick={() => { const p = page + 1; setPage(p); loadLogs(p); }} disabled={page >= totalPages}
+              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">التالي</button>
+          </div>
+        )}
       </div>
     </div>
   );

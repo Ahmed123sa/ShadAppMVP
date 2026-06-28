@@ -7,12 +7,14 @@ use App\Models\ApprovalCertificate;
 use App\Models\Workspace;
 use App\Models\AuditLog;
 use App\Events\ApprovalResponded;
+use App\Http\Requests\StoreApprovalRequest;
+use App\Http\Requests\RespondApprovalRequest;
 use App\Models\User;
 use App\Notifications\ApprovalRequestedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
 use App\Services\ApprovalPdfService;
 
@@ -20,24 +22,18 @@ class ApprovalController extends Controller
 {
     public function index(Request $request, Workspace $workspace): JsonResponse
     {
-        $user = $request->user();
-        $isAM = $user instanceof \App\Models\User && $user->isAccountManager();
+        $this->authorize('viewAny', Approval::class);
 
+        $user = $request->user();
         return response()->json(['approvals' => $workspace->approvals()
             ->with('certificate', 'requester', 'files', 'chatMessage')
-            ->when($isAM, fn($q) => $q->where('requested_by', '!=', $user->id))
+            ->when($user->isAccountManager(), fn($q) => $q->where('requested_by', '!=', $user->id))
             ->latest()
-            ->get()]);
+            ->paginate(30)]);
     }
 
-    public function store(Request $request, Workspace $workspace): JsonResponse
+    public function store(StoreApprovalRequest $request, Workspace $workspace): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'files' => 'nullable|array',
-            'files.*' => 'file|max:102400',
-        ]);
 
         $approval = $workspace->approvals()->create([
             'title' => $request->title,
@@ -108,24 +104,17 @@ class ApprovalController extends Controller
         return response()->json(['approval' => $approval->load('requester', 'files', 'chatMessage')], 201);
     }
 
-    public function show(Approval $approval): JsonResponse
+    public function show(Request $request, Approval $approval): JsonResponse
     {
+        $this->authorize('view', $approval);
+
         return response()->json(['approval' => $approval->load('certificate', 'requester', 'files', 'chatMessage')]);
     }
 
-    public function respond(Request $request, Approval $approval): JsonResponse
+    public function respond(RespondApprovalRequest $request, Approval $approval): JsonResponse
     {
-        $request->validate([
-            'action' => 'required|in:approved,edit_requested',
-        ]);
 
         $user = $request->user();
-
-        // Prevent AM from responding to their own approval
-        if ($user instanceof \App\Models\User && $approval->requested_by === $user->id) {
-            return response()->json(['message' => 'لا يمكنك الرد على طلب موافقة قمت بإنشائه'], 403);
-        }
-
         $signature = $user instanceof \App\Models\Client ? $user->signature_data : null;
 
         $approval->update([

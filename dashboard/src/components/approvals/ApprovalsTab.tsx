@@ -17,7 +17,7 @@ export default function ApprovalsTab({ wsId }: { wsId: number }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.get(`/workspaces/${wsId}/approvals`).then(({ data }) => setApprovals(data.approvals || [])).catch(() => {}).finally(() => setLoading(false));
+    api.get(`/workspaces/${wsId}/approvals`).then(({ data }) => setApprovals(data.approvals?.data || data.approvals || [])).catch(() => {}).finally(() => setLoading(false));
   }, [wsId]);
 
   const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));

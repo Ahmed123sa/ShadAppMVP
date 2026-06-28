@@ -24,6 +24,17 @@ backend/bootstrap/cache/*.php
 backend/storage/app/public/contracts/*
 backend/storage/app/public/workspace-*
 
+# debug
+debug.php
+backend/storage/debugbar/
+
+# firebase / service accounts
+google-services.json
+shadapp-*.json
+
+# scratch
+infos.txt
+
 # os
 .DS_Store
 Thumbs.db

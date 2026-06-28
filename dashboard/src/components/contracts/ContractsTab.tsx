@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { getUser } from '@/lib/auth';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import ContractStatusStepper from '@/components/ui/ContractStatusStepper';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -31,7 +32,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
 
   useEffect(() => {
     Promise.all([
-      api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts || [])),
+      api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts?.data || data.contracts || [])),
       api.get('/contract-clause-templates').then(({ data }) => setTemplates(data.templates || [])),
     ]).catch(() => {}).finally(() => setLoading(false));
   }, [wsId]);
@@ -168,6 +169,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
             </div>
             <StatusBadge status={c.status} />
           </div>
+          <ContractStatusStepper status={c.status} compact />
           {c.clauses?.length > 0 && (
             <div className="mt-2 space-y-1">
               {c.clauses.map((cl: any) => (

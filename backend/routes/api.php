@@ -119,6 +119,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Contract Clause Templates
     Route::get('/contract-clause-templates', [ContractController::class, 'templates']);
 
+    // Users list (for filters)
+    Route::get('/users', function () {
+        return \App\Models\User::select('id', 'name', 'email')->get();
+    });
+
     // Audit & Reports
     Route::get('/audit-logs', [AuditController::class, 'index']);
     Route::get('/reports', [AuditController::class, 'reports']);

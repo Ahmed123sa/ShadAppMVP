@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
+class StageStep {
+  final String status;
+  final String label;
+  final IconData icon;
+  const StageStep({required this.status, required this.label, required this.icon});
+}
+
 class StagesStepper extends StatelessWidget {
-  final int currentStage;
-  final void Function(int stage)? onStageTap;
+  final String currentStatus;
+  final List<StageStep> steps;
 
-  const StagesStepper({super.key, required this.currentStage, this.onStageTap});
-
-  static const stages = [
-    _Stage('التوقيع الإلكتروني', Icons.fingerprint),
-    _Stage('استلام العقد', Icons.description),
-    _Stage('موافقتك', Icons.thumb_up),
-    _Stage('اعتماد الشركة', Icons.business),
-    _Stage('إثبات الدفع', Icons.payment),
-    _Stage('تفعيل المساحة', Icons.rocket_launch),
-  ];
+  const StagesStepper({super.key, required this.currentStatus, required this.steps});
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = steps.indexWhere((s) => s.status == currentStatus);
+    final activeIndex = currentIndex >= 0 ? currentIndex : 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -26,82 +27,64 @@ class StagesStepper extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: ShadColors.cardBorder),
       ),
-      child: Row(
-        children: List.generate(stages.length * 2 - 1, (i) {
-          if (i.isOdd) {
-            final stageIdx = i ~/ 2;
-            return Expanded(
-              child: Container(
-                height: 2,
-                decoration: BoxDecoration(
-                  color: stageIdx < currentStage ? ShadColors.success : ShadColors.cardBorder,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-            );
-          }
-          final stageIdx = i ~/ 2;
-          final stage = stages[stageIdx];
-          final done = stageIdx < currentStage;
-          final active = stageIdx == currentStage;
-          return GestureDetector(
-            onTap: onStageTap != null ? () => onStageTap!(stageIdx) : null,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 28, height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: done
-                        ? ShadColors.success.withAlpha(30)
-                        : active
-                            ? ShadColors.gold.withAlpha(30)
-                            : ShadColors.cardBorder,
-                    border: Border.all(
-                      color: done
-                          ? ShadColors.success
-                          : active
-                              ? ShadColors.gold
-                              : ShadColors.textDisabled,
-                      width: active ? 2 : 1,
-                    ),
-                  ),
-                  child: Icon(
-                    done ? Icons.check : stage.icon,
-                    size: 14,
-                    color: done
-                        ? ShadColors.success
-                        : active
-                            ? ShadColors.gold
-                            : ShadColors.textDisabled,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  stage.label,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                    color: done
-                        ? ShadColors.success
-                        : active
-                            ? ShadColors.gold
-                            : ShadColors.textDisabled,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < steps.length; i++)
+            _buildStep(context, i, activeIndex),
+        ],
       ),
     );
   }
-}
 
-class _Stage {
-  final String label;
-  final IconData icon;
-  const _Stage(this.label, this.icon);
+  Widget _buildStep(BuildContext context, int index, int activeIndex) {
+    final step = steps[index];
+    final isCompleted = index < activeIndex;
+    final isActive = index == activeIndex;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 28, height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isCompleted
+                  ? ShadColors.success.withAlpha(30)
+                  : isActive
+                      ? ShadColors.gold.withAlpha(30)
+                      : ShadColors.cardBorder,
+              border: Border.all(
+                color: isCompleted
+                    ? ShadColors.success
+                    : isActive ? ShadColors.gold : ShadColors.textDisabled,
+                width: isActive ? 2 : 1,
+              ),
+            ),
+            child: Icon(
+              isCompleted ? Icons.check : step.icon,
+              size: 14,
+              color: isCompleted
+                  ? ShadColors.success
+                  : isActive ? ShadColors.gold : ShadColors.textDisabled,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              step.label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isCompleted || isActive
+                    ? ShadColors.text
+                    : ShadColors.textDisabled,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
