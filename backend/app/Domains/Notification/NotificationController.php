@@ -25,7 +25,7 @@ class NotificationController extends Controller
             'device_type' => 'required|in:ios,android,web',
         ]);
 
-        $user = $request->user() ?? $request->user('sanctum:client');
+        $user = $request->user() ?? $request->user('client');
 
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
@@ -51,6 +51,22 @@ class NotificationController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'required|string',
         ]);
+
+        $authUser = $request->user();
+        if (!$authUser instanceof User) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$authUser->isSuperAdmin()) {
+            if ($request->user_type === 'App\\Models\\Client') {
+                $target = Client::find($request->user_id);
+                if (!$target || $target->manager_id !== $authUser->id) {
+                    return response()->json(['message' => 'Forbidden'], 403);
+                }
+            } else {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+        }
 
         try {
             $firebase = app(FirebaseService::class);

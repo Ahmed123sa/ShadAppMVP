@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { getUser } from '@/lib/auth';
+import { subscribeToWorkspace } from '@/lib/echo';
 import ChatContractCard from '@/components/chat/ChatContractCard';
 import ContractBuilder from '@/components/chat/ContractBuilder';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -33,7 +34,15 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
     ]).catch(() => {}).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [wsId]);
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 60000);
+    const unsub = subscribeToWorkspace(wsId, {
+      onMessageSent: () => { load(); },
+      onContractStatusChanged: () => { load(); },
+    });
+    return () => { clearInterval(iv); if (unsub) unsub(); };
+  }, [wsId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 

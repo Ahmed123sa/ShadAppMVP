@@ -56,7 +56,7 @@ class FirebaseService
         });
     }
 
-    public function sendMessage(string $token, array $notification, array $data = []): bool
+    public function sendMessage(string $token, array $notification, array $data = []): bool|string
     {
         $accessToken = $this->getAccessToken();
         $account = $this->loadServiceAccount();

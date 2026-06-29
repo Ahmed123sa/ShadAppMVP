@@ -52,7 +52,10 @@ class _ChatPageState extends State<ChatPage> {
     _pollTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
-    ReverbService().disconnect();
+    final cid = _api.userId;
+    if (cid != null) {
+      ReverbService().connectForClient(cid);
+    }
     super.dispose();
   }
 

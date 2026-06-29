@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import { subscribeToWorkspace } from '@/lib/echo';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -23,7 +24,14 @@ export default function ClientChat({ wsId, wsActive }: { wsId: number; wsActive?
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); const iv = setInterval(load, 5000); return () => clearInterval(iv); }, [wsId]);
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 60000);
+    const unsub = subscribeToWorkspace(wsId, {
+      onMessageSent: () => { load(); },
+    });
+    return () => { clearInterval(iv); if (unsub) unsub(); };
+  }, [wsId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
