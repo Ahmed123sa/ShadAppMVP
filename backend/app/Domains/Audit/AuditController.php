@@ -53,7 +53,9 @@ class AuditController extends Controller
 
         if ($user->isAccountManager()) {
             $clientModel->where('manager_id', $user->id);
-            $paymentModel->whereIn('client_id', $clientModel->pluck('id'));
+            $paymentModel->whereHas('client', function ($q) use ($user) {
+                $q->where('manager_id', $user->id);
+            });
         }
 
         $data = [
@@ -64,8 +66,10 @@ class AuditController extends Controller
             'recent_logins' => AuditLog::where('action', 'login')->whereDate('created_at', today())->count(),
             'contracts_by_status' => \App\Models\Contract::selectRaw('status, count(*) as count')
                 ->groupBy('status')->pluck('count', 'status'),
-            'payments_by_month' => \App\Models\Payment::select('amount', 'created_at')
-                ->get()->groupBy(fn($p) => $p->created_at->format('Y-m'))
+            'payments_by_month' => (clone $paymentModel)
+                ->select('amount', 'created_at')
+                ->get()
+                ->groupBy(fn($p) => $p->created_at->format('Y-m'))
                 ->map(fn($items) => (float) $items->sum('amount')),
             'approval_stats' => [
                 'approved' => \App\Models\Approval::where('status', 'approved')->count(),

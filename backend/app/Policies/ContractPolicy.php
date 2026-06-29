@@ -49,7 +49,7 @@ class ContractPolicy
 
     public function complete($user, Contract $contract): bool
     {
-        return $user instanceof \App\Models\User && $contract->workspace->manager_id === $user->id;
+        return $user instanceof \App\Models\User && ($user->isSuperAdmin() || $contract->workspace->manager_id === $user->id);
     }
 
     public function archive($user, Contract $contract): bool

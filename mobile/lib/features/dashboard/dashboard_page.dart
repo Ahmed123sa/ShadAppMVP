@@ -49,8 +49,10 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
     if (wsStatus == 'active') return 6;
     if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) return 5;
     if (contractsList.any((c) => c is Map && c['status'] == 'completed')) return 4;
+    if (contractsList.any((c) => c is Map && c['status'] == 'archived')) return 4;
     if (contractsList.any((c) => c is Map && c['status'] == 'company_approved')) return 4;
     if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) return 3;
+    if (contractsList.any((c) => c is Map && c['status'] == 'edit_requested')) return 2;
     if (contractsList.any((c) => c is Map && c['status'] == 'sent')) return 2;
     if (client['signed_at'] != null) return 1;
     return 0;
@@ -342,6 +344,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
       else if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) { currentStatus = 'payment_approved'; }
       else if (contractsList.any((c) => c is Map && c['status'] == 'company_approved')) { currentStatus = 'payment_approved'; }
       else if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) { currentStatus = 'company_approved'; }
+      else if (contractsList.any((c) => c is Map && c['status'] == 'edit_requested')) { currentStatus = 'edit_requested'; }
       else if (contractsList.any((c) => c is Map && c['status'] == 'sent')) { currentStatus = 'client_approved'; }
       else if (client['signed_at'] != null) { currentStatus = 'sent'; }
     }
@@ -349,6 +352,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
     final steps = const [
       StageStep(status: 'signed', label: 'التوقيع', icon: Icons.edit),
       StageStep(status: 'sent', label: 'استلام العقد', icon: Icons.downloading),
+      StageStep(status: 'edit_requested', label: 'طلب تعديل', icon: Icons.edit_note),
       StageStep(status: 'client_approved', label: 'موافقة العميل', icon: Icons.thumb_up),
       StageStep(status: 'company_approved', label: 'اعتماد الشركة', icon: Icons.verified),
       StageStep(status: 'payment_approved', label: 'الدفع', icon: Icons.payment),
@@ -370,7 +374,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
       const SubUsersPage(),
     ];
 
-    final titles = ['العقود', 'المدفوعات', 'الموافقات', 'الشات', 'الملفات', 'الاجتماعات', 'التوقيع', 'المستخدمين'];
+    final titles = ['العقود', 'المدفوعات', 'طلبات لاحقة', 'الشات', 'الملفات', 'الاجتماعات', 'التوقيع', 'المستخدمين'];
 
     return Scaffold(
       appBar: AppBar(
@@ -442,7 +446,7 @@ class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserv
             NavigationDestination(
               icon: _navIcon(_isTabLocked(2) ? Icons.lock_outline : Icons.check_circle_outlined, 2),
               selectedIcon: _navIcon(Icons.check_circle_rounded, 2, selected: true),
-              label: 'الموافقات',
+              label: 'طلبات لاحقة',
             ),
             NavigationDestination(
               icon: _navIcon(_isTabLocked(3) ? Icons.lock_outline : Icons.chat_outlined, 3),

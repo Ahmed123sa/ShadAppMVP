@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
@@ -24,6 +25,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
   List<dynamic> _pendingPayments = [];
   bool _loading = true;
   int _unreadNotifs = 0;
+  Timer? _pollTimer;
 
   @override
   void initState() {
@@ -31,6 +33,10 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
     _load();
     _searchController.addListener(_filter);
     _setupRealtimeNotifications();
+    _pollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _load();
+      _loadNotifs();
+    });
   }
 
   void _setupRealtimeNotifications() {
@@ -269,6 +275,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
