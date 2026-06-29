@@ -74,38 +74,38 @@ export default function ProfilePage() {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-700 text-sm">{t('profile_saved')}</div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-24 h-24 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200">
+          <div className="w-24 h-24 rounded-full bg-[var(--color-input-fill)] overflow-hidden border-2 border-zinc-200">
             {avatarPreview ? (
               <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl text-zinc-400">
+              <div className="w-full h-full flex items-center justify-center text-3xl text-[var(--color-text-disabled)]">
                 {displayName?.[0] || '?'}
               </div>
             )}
           </div>
           <button onClick={() => avatarInputRef.current?.click()} type="button"
-            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+            className="bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-4 py-2 rounded-lg text-sm transition-colors">
             {t('change_avatar')}
           </button>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-zinc-500">{t('name')}</label>
+          <label className="text-xs text-[var(--color-text-secondary)]">{t('name')}</label>
           <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-            className="border rounded-lg px-4 py-2 text-sm w-full" />
+            className="border border-[var(--color-input-border)] bg-[var(--color-input-fill)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm w-full" />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-zinc-500">{t('email_info')}</label>
+          <label className="text-xs text-[var(--color-text-secondary)]">{t('email_info')}</label>
           <input value={email} disabled
-            className="border rounded-lg px-4 py-2 text-sm w-full bg-zinc-50 text-zinc-400" dir="ltr" />
+            className="border border-[var(--color-input-border)] bg-[var(--color-card-border)] text-[var(--color-text-disabled)] rounded-lg px-4 py-2 text-sm w-full" dir="ltr" />
         </div>
 
         <button onClick={save} disabled={saving}
-          className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">
+          className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50 w-full">
           {saving ? '...' : t('save')}
         </button>
       </div>

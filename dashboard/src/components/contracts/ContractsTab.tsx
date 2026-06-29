@@ -16,6 +16,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
   const [form, setForm] = useState({ title: '', value: '', start_date: '', end_date: '' });
   const [selectedOptional, setSelectedOptional] = useState<Record<number, boolean>>({});
   const [customClauses, setCustomClauses] = useState<string[]>([]);
+  const [error, setError] = useState('');
   const [newCustom, setNewCustom] = useState('');
   const [approveSig, setApproveSig] = useState<{ id: number; signature: string } | null>(null);
   const [savedUserSig, setSavedUserSig] = useState<{ data: string; type: string } | null>(null);
@@ -34,7 +35,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
     Promise.all([
       api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts?.data || data.contracts || [])),
       api.get('/contract-clause-templates').then(({ data }) => setTemplates(data.templates || [])),
-    ]).catch(() => {}).finally(() => setLoading(false));
+    ]).catch((err) => { console.error('ContractsTab: GET /workspaces/${wsId}/contracts failed', err); setError('فشل تحميل العقود'); }).finally(() => setLoading(false));
   }, [wsId]);
 
   const user = getUser();
@@ -92,25 +93,25 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
   };
 
   if (loading) return <LoadingSkeleton />;
-
+  if (error) return <p className="text-sm text-red-400 text-center py-8">{error}</p>;
   if (isSA && contracts.length === 0) return <EmptyState message="لا توجد عقود" />;
 
   return (
     <div className="space-y-3">
-      {!isSA && <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline">+ عقد جديد</button>}
+      {!isSA && <button onClick={() => setShowForm(!showForm)} className="text-sm text-[var(--color-gold)] hover:underline">+ عقد جديد</button>}
       {!isSA && showForm && (
-        <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="عنوان العقد" className="border rounded-lg px-3 py-2 text-sm w-full" />
+        <div className="space-y-2 border border-[var(--color-card-border)] rounded-lg p-4 bg-[var(--color-card-border)]">
+          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="عنوان العقد" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
           <div className="flex gap-2">
-            <input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} type="number" placeholder="القيمة" className="border rounded-lg px-3 py-2 text-sm w-32" />
-            <input value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} type="date" className="border rounded-lg px-3 py-2 text-sm flex-1" />
-            <input value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} type="date" className="border rounded-lg px-3 py-2 text-sm flex-1" />
+            <input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} type="number" placeholder="القيمة" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm w-32 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
+            <input value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} type="date" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm flex-1 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
+            <input value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} type="date" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm flex-1 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
           </div>
           {fixedTemplates.length > 0 && (
-            <div className="border rounded p-3 bg-white">
-              <h4 className="text-xs font-bold text-zinc-500 mb-2">بنود ثابتة (مضمنة)</h4>
+            <div className="border border-[var(--color-card-border)] rounded p-3 bg-[var(--color-card)]">
+              <h4 className="text-xs font-bold text-[var(--color-text-secondary)] mb-2">بنود ثابتة (مضمنة)</h4>
               {fixedTemplates.map((t: any) => (
-                <label key={t.id} className="flex items-start gap-2 text-xs text-zinc-600 py-1">
+                <label key={t.id} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] py-1">
                   <input type="checkbox" checked disabled className="mt-0.5" />
                   <span>{t.content}</span>
                 </label>
@@ -118,53 +119,53 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
             </div>
           )}
           {optionalTemplates.length > 0 && (
-            <div className="border rounded p-3 bg-white">
-              <h4 className="text-xs font-bold text-zinc-500 mb-2">بنود اختيارية</h4>
+            <div className="border border-[var(--color-card-border)] rounded p-3 bg-[var(--color-card)]">
+              <h4 className="text-xs font-bold text-[var(--color-text-secondary)] mb-2">بنود اختيارية</h4>
               {optionalTemplates.map((t: any) => (
-                <label key={t.id} className="flex items-start gap-2 text-xs text-zinc-600 py-1 cursor-pointer hover:text-blue-700">
+                <label key={t.id} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] py-1 cursor-pointer hover:text-[var(--color-gold)]">
                   <input type="checkbox" checked={!!selectedOptional[t.id]} onChange={() => toggleOptional(t.id)} className="mt-0.5" />
                   <span>{t.content}</span>
                 </label>
               ))}
             </div>
           )}
-          <div className="border rounded p-3 bg-white">
-            <h4 className="text-xs font-bold text-zinc-500 mb-2">بنود مخصصة</h4>
+          <div className="border border-[var(--color-card-border)] rounded p-3 bg-[var(--color-card)]">
+            <h4 className="text-xs font-bold text-[var(--color-text-secondary)] mb-2">بنود مخصصة</h4>
             <div className="flex gap-2 mb-2">
-              <input value={newCustom} onChange={(e) => setNewCustom(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="اكتب بنداً..." className="border rounded px-3 py-2 text-sm flex-1" />
-              <button onClick={addCustom} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs hover:bg-blue-700">إضافة</button>
+              <input value={newCustom} onChange={(e) => setNewCustom(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="اكتب بنداً..." className="border border-[var(--color-input-border)] rounded px-3 py-2 text-sm flex-1 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
+              <button onClick={addCustom} className="bg-[var(--color-primary)] text-white px-3 py-2 rounded-lg text-xs hover:bg-[var(--color-primary-dark)]">إضافة</button>
             </div>
             {customClauses.map((c, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-zinc-600 py-1">
+              <div key={i} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] py-1">
                 <span className="text-blue-500 mt-0.5">•</span>
                 <span className="flex-1">{c}</span>
                 <button onClick={() => removeCustom(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
               </div>
             ))}
           </div>
-          <div className="border rounded p-3 bg-white">
-            <h4 className="text-xs font-bold text-zinc-500 mb-2">المستندات المطلوبة من العميل</h4>
+          <div className="border border-[var(--color-card-border)] rounded p-3 bg-[var(--color-card)]">
+            <h4 className="text-xs font-bold text-[var(--color-text-secondary)] mb-2">المستندات المطلوبة من العميل</h4>
             <div className="flex gap-2 mb-2">
-              <input value={newReqDoc} onChange={(e) => setNewReqDoc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const t = newReqDoc.trim(); if (t) { setRequiredDocs((prev) => [...prev, t]); setNewReqDoc(''); } } }} placeholder="اسم المستند..." className="border rounded px-3 py-2 text-sm flex-1" />
+              <input value={newReqDoc} onChange={(e) => setNewReqDoc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const t = newReqDoc.trim(); if (t) { setRequiredDocs((prev) => [...prev, t]); setNewReqDoc(''); } } }} placeholder="اسم المستند..." className="border border-[var(--color-input-border)] rounded px-3 py-2 text-sm flex-1 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
               <button onClick={() => { const t = newReqDoc.trim(); if (t) { setRequiredDocs((prev) => [...prev, t]); setNewReqDoc(''); } }} className="bg-amber-600 text-white px-3 py-2 rounded-lg text-xs hover:bg-amber-700">إضافة</button>
             </div>
             {requiredDocs.map((d, i) => (
-              <div key={i} className="flex items-start gap-2 text-xs text-zinc-600 py-1">
+              <div key={i} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] py-1">
                 <span className="text-amber-500 mt-0.5">📎</span>
                 <span className="flex-1">{d}</span>
                 <button onClick={() => setRequiredDocs((prev) => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-xs">✕</button>
               </div>
             ))}
           </div>
-          <button onClick={create} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">حفظ</button>
+          <button onClick={create} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-primary-dark)]">حفظ</button>
         </div>
       )}
       {contracts.length === 0 ? <EmptyState message="لا توجد عقود" /> : null}
       {contracts.map((c) => (
-        <div key={c.id} className="border rounded-lg p-4">
+        <div key={c.id} className="border border-[var(--color-card-border)] rounded-lg p-4">
           <div className="flex justify-between items-start">
             <div><h4 className="font-medium">{c.title}</h4>
-              {c.value ? <p className="text-xs text-zinc-500">{c.value} ر.س{c.start_date ? ` • من ${c.start_date}` : ''}{c.end_date ? ` إلى ${c.end_date}` : ''}</p> : ''}
+              {c.value ? <p className="text-xs text-[var(--color-text-secondary)]">{c.value} ر.س{c.start_date ? ` • من ${c.start_date}` : ''}{c.end_date ? ` إلى ${c.end_date}` : ''}</p> : ''}
               {c.required_documents?.length > 0 && <p className="text-xs text-amber-600 mt-0.5">📎 {c.required_documents.length} مستند مطلوب</p>}
             </div>
             <StatusBadge status={c.status} />
@@ -173,12 +174,12 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
           {c.clauses?.length > 0 && (
             <div className="mt-2 space-y-1">
               {c.clauses.map((cl: any) => (
-                <p key={cl.id} className="text-xs text-zinc-500 pr-2 border-r-2 border-zinc-200">{cl.content}</p>
+                <p key={cl.id} className="text-xs text-[var(--color-text-secondary)] pr-2 border-r-2 border-[var(--color-card-border)]">{cl.content}</p>
               ))}
             </div>
           )}
           <div className="mt-2 flex gap-2 flex-wrap">
-            {!isSA && c.status === 'draft' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-blue-600 hover:underline">إرسال</button>}
+            {!isSA && c.status === 'draft' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-[var(--color-gold)] hover:underline">إرسال</button>}
             {!isSA && c.status === 'edit_requested' && <button onClick={() => doAction(c.id, 'send')} className="text-xs text-amber-600 hover:underline">إرسال بعد التعديل</button>}
             {c.status === 'client_approved' && (
               <>
@@ -191,7 +192,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
             {c.status === 'company_approved' && (
               <>
                 {c.pdf_url && <a href={c.pdf_url} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">📄 تحميل العقد النهائي</a>}
-                {!isSA && <button onClick={() => doAction(c.id, 'archive')} className="text-xs text-zinc-500 hover:underline">أرشفة</button>}
+                {!isSA && <button onClick={() => doAction(c.id, 'archive')} className="text-xs text-[var(--color-text-secondary)] hover:underline">أرشفة</button>}
               </>
             )}
             {c.status === 'completed' && (
@@ -203,22 +204,22 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
 
       {approveSig && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => { setApproveSig(null); setSavedUserSig(null); setUseSavedSig(false); }}>
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--color-card)] border border-[var(--color-card-border)] rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold">اعتماد العقد من الشركة</h3>
 
             {savedUserSig && !useSavedSig ? (
               <div className="space-y-3">
-                <p className="text-sm text-zinc-600">التوقيع المحفوظ:</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">التوقيع المحفوظ:</p>
                 {savedUserSig.type === 'text' ? (
-                  <p className="text-lg font-[cursive] border rounded-lg p-4 bg-zinc-50 text-center">{savedUserSig.data}</p>
+                  <p className="text-lg font-[cursive] border border-[var(--color-card-border)] rounded-lg p-4 bg-[var(--color-card-border)] text-center">{savedUserSig.data}</p>
                 ) : (
-                  <img src={resolveFileUrl(savedUserSig.data)} alt="التوقيع المحفوظ" className="max-h-20 border rounded-lg p-2 bg-zinc-50 mx-auto" />
+                  <img src={resolveFileUrl(savedUserSig.data)} alt="التوقيع المحفوظ" className="max-h-20 border border-[var(--color-card-border)] rounded-lg p-2 bg-[var(--color-card-border)] mx-auto" />
                 )}
                 <div className="flex gap-2">
                   <button onClick={() => setUseSavedSig(true)}
                     className="flex-1 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700">استخدام التوقيع المحفوظ</button>
                   <button onClick={() => { setSavedUserSig(null); }}
-                    className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border text-zinc-600 hover:bg-zinc-50">كتابة توقيع جديد</button>
+                    className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border border-[var(--color-card-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-card-border)]">كتابة توقيع جديد</button>
                 </div>
               </div>
             ) : useSavedSig ? (
@@ -236,9 +237,9 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
               </div>
             ) : (
               <>
-                <p className="text-xs text-zinc-500">اكتب اسمك كاملاً لتوقيع اعتماد العقد (الطرف الثاني)</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">اكتب اسمك كاملاً لتوقيع اعتماد العقد (الطرف الثاني)</p>
                 <textarea value={approveSig.signature} onChange={(e) => setApproveSig({ ...approveSig, signature: e.target.value })}
-                  className="border rounded-lg px-4 py-3 text-lg font-medium w-full h-20 text-center"
+                  className="border border-[var(--color-input-border)] rounded-lg px-4 py-3 text-lg font-medium w-full h-20 text-center bg-[var(--color-input-fill)] text-[var(--color-foreground)]"
                   placeholder="اكتب اسمك هنا..." />
               </>
             )}
@@ -247,7 +248,7 @@ export default function ContractsTab({ wsId }: { wsId: number }) {
               <button onClick={doCompanyApprove} disabled={!useSavedSig && !savedUserSig && !approveSig.signature.trim()}
                 className="flex-1 bg-purple-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-purple-700 disabled:opacity-50">اعتماد وتوقيع</button>
               <button onClick={() => { setApproveSig(null); setSavedUserSig(null); setUseSavedSig(false); }}
-                className="px-4 py-2.5 rounded-lg text-sm font-medium border text-zinc-600 hover:bg-zinc-50">إلغاء</button>
+                className="px-4 py-2.5 rounded-lg text-sm font-medium border border-[var(--color-card-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-card-border)]">إلغاء</button>
             </div>
           </div>
         </div>

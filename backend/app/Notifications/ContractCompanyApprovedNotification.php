@@ -38,7 +38,7 @@ class ContractCompanyApprovedNotification extends Notification
         return [
             'title' => 'اعتماد نهائي للعقد',
             'body' => 'تم اعتماد العقد ' . $this->contract->title . ' من الطرفين.',
-            'data' => ['type' => 'contract', 'id' => (string) $this->contract->id],
+            'data' => ['type' => 'contract.company_approved', 'id' => (string) $this->contract->id],
         ];
     }
     public function toBroadcast($notifiable): array

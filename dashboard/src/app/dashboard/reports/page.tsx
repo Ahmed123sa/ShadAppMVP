@@ -49,8 +49,8 @@ export default function ReportsPage() {
     Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
     params.set('page', String(p));
     api.get(`/audit-logs?${params.toString()}`).then((res) => {
-      setLogs(res.data?.logs?.data || res.logs?.data || []);
-      const pagination = res.data?.logs || res.logs;
+      setLogs(res.data?.logs?.data || []);
+      const pagination = res.data?.logs;
       setTotalPages(pagination?.last_page || 1);
     }).catch(() => {});
   };
@@ -86,30 +86,30 @@ export default function ReportsPage() {
       {/* Filters */}
       <div className="flex gap-2 items-center flex-wrap">
         <select value={filters.action} onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-          className="border rounded-lg px-3 py-2 text-sm">
+          className="border border-[var(--color-card-border)] rounded-lg px-3 py-2 text-sm">
           <option value="">كل الأحداث</option>
           {Object.entries(ACTION_LABELS).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
         <select value={filters.user_id} onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
-          className="border rounded-lg px-3 py-2 text-sm">
+          className="border border-[var(--color-card-border)] rounded-lg px-3 py-2 text-sm">
           <option value="">كل المستخدمين</option>
           {users.map((u: any) => (
             <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
-        <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
-        <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
-        <button onClick={applyFilters} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">تطبيق</button>
+        <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="border border-[var(--color-card-border)] rounded-lg px-3 py-2 text-sm" />
+        <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="border border-[var(--color-card-border)] rounded-lg px-3 py-2 text-sm" />
+        <button onClick={applyFilters} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-primary-dark)]">تطبيق</button>
       </div>
 
       {/* Summary Cards */}
       {reports && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {summaryCards.map(([key, val]) => (
-            <div key={key} className="bg-white rounded-xl shadow-sm border p-4">
-              <p className="text-sm text-zinc-500">{key}</p>
+              <div key={key} className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4">
+              <p className="text-sm text-[var(--color-text-secondary)]">{key}</p>
               <p className="text-2xl font-bold mt-1">{val as number}</p>
             </div>
           ))}
@@ -118,7 +118,7 @@ export default function ReportsPage() {
 
       {/* Chart 1: Contracts by Status (Bar) */}
       {contractsData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-5">
           <h3 className="font-semibold mb-3">العقود حسب الحالة</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={contractsData}>
@@ -133,7 +133,7 @@ export default function ReportsPage() {
 
       {/* Chart 2: Payments Over Time (Line) */}
       {paymentsData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-5">
           <h3 className="font-semibold mb-3">المدفوعات حسب الشهر</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={paymentsData}>
@@ -148,7 +148,7 @@ export default function ReportsPage() {
 
       {/* Chart 3: Approval Stats (Pie) */}
       {approvalsData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border p-5">
+        <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-5">
           <h3 className="font-semibold mb-3">إحصائيات الموافقات</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -162,24 +162,24 @@ export default function ReportsPage() {
       )}
 
       {/* Audit Log */}
-      <div className="bg-white rounded-xl shadow-sm border p-5">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-5">
         <h3 className="font-semibold mb-3">سجل التدقيق</h3>
         <div className="space-y-2 max-h-96 overflow-y-auto">
-          {logs.length === 0 && <p className="text-zinc-400 text-sm">لا توجد سجلات</p>}
+          {logs.length === 0 && <p className="text-[var(--color-text-disabled)] text-sm">لا توجد سجلات</p>}
           {logs.map((log: any) => (
-            <div key={log.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
-              <span><span className="font-medium">{ACTION_LABELS[log.action] || log.action}</span>{log.user?.name ? <span className="text-zinc-400 mr-2">بواسطة {log.user.name}</span> : null}</span>
-              <span className="text-zinc-400 text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}</span>
+            <div key={log.id} className="flex items-center justify-between text-sm py-1 border-b border-[var(--color-card-border)] last:border-0">
+              <span><span className="font-medium">{ACTION_LABELS[log.action] || log.action}</span>{log.user?.name ? <span className="text-[var(--color-text-disabled)] mr-2">بواسطة {log.user.name}</span> : null}</span>
+              <span className="text-[var(--color-text-disabled)] text-xs whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleString('ar-SA') : '—'}</span>
             </div>
           ))}
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t">
+          <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-[var(--color-card-border)]">
             <button onClick={() => { const p = page - 1; setPage(p); loadLogs(p); }} disabled={page <= 1}
-              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">السابق</button>
-            <span className="text-sm text-zinc-500">الصفحة {page} من {totalPages}</span>
+              className="px-3 py-1.5 text-sm rounded border border-[var(--color-card-border)] hover:bg-[var(--color-card-border)] disabled:opacity-40">السابق</button>
+            <span className="text-sm text-[var(--color-text-secondary)]">الصفحة {page} من {totalPages}</span>
             <button onClick={() => { const p = page + 1; setPage(p); loadLogs(p); }} disabled={page >= totalPages}
-              className="px-3 py-1.5 text-sm rounded border hover:bg-zinc-50 disabled:opacity-40">التالي</button>
+              className="px-3 py-1.5 text-sm rounded border border-[var(--color-card-border)] hover:bg-[var(--color-card-border)] disabled:opacity-40">التالي</button>
           </div>
         )}
       </div>

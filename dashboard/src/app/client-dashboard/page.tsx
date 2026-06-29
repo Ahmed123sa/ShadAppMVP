@@ -59,7 +59,7 @@ export default function ClientDashboardPage() {
     return () => clearInterval(interval);
   }, [workspace?.id]);
 
-  if (!mounted) return <div className="min-h-screen flex items-center justify-center text-zinc-500">جاري التحميل...</div>;
+  if (!mounted) return <div className="min-h-screen flex items-center justify-center text-[var(--color-text-secondary)]">جاري التحميل...</div>;
   if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSkeleton message="جاري تحميل بيانات العميل..." /></div>;
   if (!session || !client) return null;
 
@@ -70,18 +70,18 @@ export default function ClientDashboardPage() {
 
   if (!hasSigned) {
     return (
-      <div className="min-h-screen bg-zinc-50">
-        <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <header className="bg-[var(--color-card)] border-b border-[var(--color-card-border)] px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-bold">ShadApp</h1>
           <div className="flex items-center gap-3">
-            <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
+            <button onClick={clientLogout} className="text-xs bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-3 py-1.5 rounded-lg">تسجيل خروج</button>
           </div>
         </header>
         <main className="max-w-2xl mx-auto p-6 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
+          <div className="bg-[var(--color-card)] rounded-2xl border border-[var(--color-card-border)] p-8 text-center">
             <div className="text-5xl mb-4">👋</div>
             <h2 className="text-2xl font-bold mb-2">مرحباً بك في ShadApp</h2>
-            <p className="text-zinc-500 mb-6">خطوة بسيطة للبدء — سجل توقيعك الإلكتروني</p>
+            <p className="text-[var(--color-text-secondary)] mb-6">خطوة بسيطة للبدء — سجل توقيعك الإلكتروني</p>
 
             <div className="space-y-3 text-right max-w-md mx-auto">
               <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
@@ -92,7 +92,7 @@ export default function ClientDashboardPage() {
                 <span className="text-amber-600 text-lg">📝</span>
                 <span className="text-sm text-amber-700 font-medium">سجل توقيعك الإلكتروني — مطلوب أولاً</span>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg text-zinc-400">
+              <div className="flex items-center gap-3 p-3 bg-[var(--color-card-border)] rounded-lg text-[var(--color-text-disabled)]">
                 <span className="text-lg">⏳</span>
                 <span className="text-sm">انتظار تفعيل مساحة العمل (بعد إصدار العقد)</span>
               </div>
@@ -107,16 +107,16 @@ export default function ClientDashboardPage() {
 
   if (!workspaceExists) {
     return (
-      <div className="min-h-screen bg-zinc-50">
-        <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <header className="bg-[var(--color-card)] border-b border-[var(--color-card-border)] px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-bold">ShadApp</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">{session.company_name}</span>
-            <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
+            <span className="text-sm text-[var(--color-text-secondary)]">{session.company_name}</span>
+            <button onClick={clientLogout} className="text-xs bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-3 py-1.5 rounded-lg">تسجيل خروج</button>
           </div>
         </header>
         <main className="max-w-2xl mx-auto p-6 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
+          <div className="bg-[var(--color-card)] rounded-2xl border border-[var(--color-card-border)] p-8 text-center">
             <div className="text-5xl mb-4">🎉</div>
             <h2 className="text-xl font-bold mb-2">تم تسجيل توقيعك بنجاح</h2>
             <div className="space-y-3 text-right max-w-md mx-auto mt-6">
@@ -129,7 +129,7 @@ export default function ClientDashboardPage() {
                 <span className="text-sm text-blue-700 font-medium">بانتظار إنشاء مساحة العمل — سيقوم مديرك بإنشاء العقد قريباً</span>
               </div>
             </div>
-            <p className="text-sm text-zinc-400 mt-6">ستصلك إشعارات عند توفر العقد</p>
+            <p className="text-sm text-[var(--color-text-disabled)] mt-6">ستصلك إشعارات عند توفر العقد</p>
           </div>
         </main>
       </div>
@@ -137,13 +137,13 @@ export default function ClientDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[var(--color-background)]">
+      <header className="bg-[var(--color-card)] border-b border-[var(--color-card-border)] px-6 py-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">ShadApp</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">{session.company_name}</span>
-            <Link href="/client-dashboard/settings" className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</Link>
-            <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">
+            <span className="text-sm text-[var(--color-text-secondary)]">{session.company_name}</span>
+            <Link href="/client-dashboard/settings" className="text-xs bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-3 py-1.5 rounded-lg transition-colors">⚙️</Link>
+            <button onClick={clientLogout} className="text-xs bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-3 py-1.5 rounded-lg">
               تسجيل خروج
             </button>
           </div>
@@ -159,31 +159,31 @@ export default function ClientDashboardPage() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border p-4 text-center">
+          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4 text-center">
             <p className="text-2xl font-bold text-blue-600">{workspace?.contracts?.length || 0}</p>
-            <p className="text-xs text-zinc-500 mt-1">العقود</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">العقود</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4 text-center">
+          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4 text-center">
             <p className="text-2xl font-bold text-emerald-600">{workspace?.payments?.length || 0}</p>
-            <p className="text-xs text-zinc-500 mt-1">المدفوعات</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">المدفوعات</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4 text-center">
+          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4 text-center">
             <p className="text-2xl font-bold text-purple-600">{workspace?.approvals?.length || 0}</p>
-            <p className="text-xs text-zinc-500 mt-1">الموافقات</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">الموافقات</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border p-4 text-center">
-            <p className={`text-2xl font-bold ${wsActive ? 'text-emerald-600' : 'text-zinc-400'}`}>
+          <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4 text-center">
+            <p className={`text-2xl font-bold ${wsActive ? 'text-emerald-600' : 'text-[var(--color-text-disabled)]'}`}>
               {wsActive ? '🟢' : '⏳'}
             </p>
-            <p className="text-xs text-zinc-500 mt-1">مساحة العمل</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-1">مساحة العمل</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="flex border-b overflow-x-auto">
+        <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] overflow-hidden">
+          <div className="flex border-b border-[var(--color-card-border)] overflow-x-auto">
             {TABS.map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-5 py-3 text-sm whitespace-nowrap border-b-2 transition ${activeTab === tab ? 'border-blue-600 text-blue-600 font-medium' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}>
+                className={`px-5 py-3 text-sm whitespace-nowrap border-b-2 transition ${activeTab === tab ? 'border-[var(--color-primary)] text-[var(--color-primary)] font-medium' : 'border-transparent text-[var(--color-text-disabled)] hover:text-[var(--color-foreground)]'}`}>
                 {tab}
               </button>
             ))}

@@ -38,7 +38,7 @@ class ContractCompletedNotification extends Notification
             'title' => 'اكتمال عقد',
             'body' => "تم اكتمال العقد {$this->contract->title}",
             'data' => [
-                'type' => 'contract',
+                'type' => 'contract.completed',
                 'id' => (string) $this->contract->id,
             ],
         ];

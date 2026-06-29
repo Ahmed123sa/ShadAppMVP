@@ -17,7 +17,7 @@ class ContractProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final res = await _api.get('/workspaces/$workspaceId/contracts');
-      _contracts = res['contracts'] as List<dynamic>;
+      _contracts = safeList(res['contracts']);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -32,7 +32,7 @@ class ContractProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final res = await _api.get('/contracts');
-      _contracts = res['contracts'] as List<dynamic>;
+      _contracts = safeList(res['contracts']);
     } catch (e) {
       _error = e.toString();
     } finally {

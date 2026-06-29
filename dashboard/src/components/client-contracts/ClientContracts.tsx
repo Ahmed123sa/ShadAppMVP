@@ -42,18 +42,18 @@ export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number
     <div className="space-y-3">
       {contracts.length === 0 ? <EmptyState message="لا توجد عقود" /> : null}
       {contracts.map((c) => (
-        <div key={c.id} className="border rounded-lg p-4">
+        <div key={c.id} className="border border-[var(--color-card-border)] rounded-lg p-4">
           <div className="flex justify-between items-start">
             <div>
               <h4 className="font-medium">{c.title}</h4>
-              {c.value > 0 && <p className="text-xs text-zinc-500">{c.value} ر.س</p>}
+              {c.value > 0 && <p className="text-xs text-[var(--color-text-secondary)]">{c.value} ر.س</p>}
               {c.required_documents?.length > 0 && <p className="text-xs text-amber-600 mt-0.5">📎 {c.required_documents.length} مستند مطلوب</p>}
             </div>
             <StatusBadge status={c.status} />
           </div>
           <ContractStatusStepper status={c.status} compact />
           <div className="mt-2 flex gap-2">
-            <button onClick={() => setViewContract(c)} className="text-xs text-blue-600 hover:underline">
+            <button onClick={() => setViewContract(c)} className="text-xs text-[var(--color-gold)] hover:underline">
               عرض التفاصيل
             </button>
             {c.status === 'sent' && (
@@ -73,7 +73,7 @@ export default function ClientContracts({ wsId, onGoToPayments }: { wsId: number
                 )}
                 {onGoToPayments && (
                   <button onClick={onGoToPayments}
-                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 mt-1">
+                    className="text-xs bg-[var(--color-primary)] text-white px-3 py-1.5 rounded-lg hover:bg-[var(--color-primary-dark)] mt-1">
                     💳 انتقال إلى الدفع
                   </button>
                 )}

@@ -52,7 +52,7 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
         _allManagers = data['managers'] as List<dynamic>? ?? [];
       } else {
         final data = await _api.get('/clients');
-        _allClients = data['clients'] as List<dynamic>? ?? [];
+        _allClients = safeList(data['clients']);
         _filter();
       }
     } catch (_) {}
@@ -195,13 +195,13 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
     final results = <Map<String, dynamic>>[];
     try {
       final data = await _api.get('/clients');
-      final clients = data['clients'] as List<dynamic>? ?? [];
+      final clients = safeList(data['clients']);
       for (final client in clients) {
         final ws = client['workspace'] as Map<String, dynamic>?;
         if (ws == null) continue;
         try {
           final contractsData = await _api.get('/workspaces/${ws['id']}/contracts');
-          final contracts = contractsData['contracts'] as List<dynamic>? ?? [];
+          final contracts = safeList(contractsData['contracts']);
           for (final c in contracts) {
             if (statuses.contains(c['status'])) {
               results.add({
@@ -224,13 +224,13 @@ class _AmDashboardPageState extends State<AmDashboardPage> {
     final results = <Map<String, dynamic>>[];
     try {
       final data = await _api.get('/clients');
-      final clients = data['clients'] as List<dynamic>? ?? [];
+      final clients = safeList(data['clients']);
       for (final client in clients) {
         final ws = client['workspace'] as Map<String, dynamic>?;
         if (ws == null) continue;
         try {
           final approvalsData = await _api.get('/workspaces/${ws['id']}/approvals');
-          final approvals = approvalsData['approvals'] as List<dynamic>? ?? [];
+          final approvals = safeList(approvalsData['approvals']);
           for (final a in approvals) {
             if (a['status'] == 'pending') {
               results.add({

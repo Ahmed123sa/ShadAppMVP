@@ -188,6 +188,12 @@ class ApiClient {
   }
 }
 
+List<dynamic> safeList(dynamic value) {
+  if (value is List) return value;
+  if (value is Map) return (value['data'] as List<dynamic>?) ?? [];
+  return [];
+}
+
 class AuthException implements Exception {
   final String message;
   AuthException(this.message);

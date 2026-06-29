@@ -51,7 +51,7 @@ class PaymentReviewedNotification extends Notification
                 'title' => 'تم تفعيل مساحة العمل',
                 'body' => "تم اعتماد الدفعة وتفعيل مساحة العمل — يمكنك الآن التواصل مع مدير الحساب",
                 'data' => [
-                    'type' => 'workspace_activated',
+                    'type' => 'payment.approved',
                     'workspace_id' => (string) $this->payment->workspace_id,
                 ],
             ];
@@ -60,7 +60,7 @@ class PaymentReviewedNotification extends Notification
             'title' => 'مراجعة دفعة',
             'body' => "الدفعة {$this->payment->amount} ر.س مقبولة",
             'data' => [
-                'type' => 'payment',
+                'type' => 'payment.approved',
                 'id' => (string) $this->payment->id,
             ],
         ];

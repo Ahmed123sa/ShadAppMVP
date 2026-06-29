@@ -33,8 +33,8 @@ class _ClientFilesPageState extends State<ClientFilesPage> {
     setState(() => _loading = true);
     try {
       final data = await _api.get('/workspaces/$wsId/files');
-      _files = data['files'] as List<dynamic>? ?? [];
-      _definitions = data['definitions'] as List<dynamic>? ?? [];
+      _files = safeList(data['files']);
+      _definitions = safeList(data['definitions']);
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }

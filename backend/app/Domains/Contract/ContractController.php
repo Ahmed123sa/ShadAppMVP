@@ -238,6 +238,11 @@ class ContractController extends Controller
 
         $contract->update(['status' => 'completed']);
 
+        $workspace = $contract->workspace;
+        if ($workspace->payments()->where('status', 'approved')->exists()) {
+            $workspace->update(['status' => 'active', 'activated_at' => now()]);
+        }
+
         event(new ContractCompleted($contract));
 
         AuditLog::create([

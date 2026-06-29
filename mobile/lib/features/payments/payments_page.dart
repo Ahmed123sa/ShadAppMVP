@@ -64,7 +64,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/$wsId/payments');
-      _payments = data['payments'] as List<dynamic>? ?? [];
+      _payments = safeList(data['payments']);
       _availableMethods = (data['available_methods'] as List<dynamic>?)?.cast<String>() ?? [];
     } catch (_) {
       _error = 'فشل تحميل المدفوعات';
@@ -77,7 +77,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
     if (wsId == null) return;
     try {
       final data = await _api.get('/workspaces/$wsId/contracts');
-      _contracts = data['contracts'] as List<dynamic>? ?? [];
+      _contracts = safeList(data['contracts']);
     } catch (_) {}
   }
 

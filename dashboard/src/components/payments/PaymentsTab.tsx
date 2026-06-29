@@ -39,17 +39,17 @@ export default function PaymentsTab({ wsId, client, onWorkspaceUpdate }: { wsId:
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-zinc-400">نسبة العميل: {client?.client_type === 'individual' ? 'فردي' : 'شركة'}</p>
+      <p className="text-xs text-[var(--color-text-disabled)]">نسبة العميل: {client?.client_type === 'individual' ? 'فردي' : 'شركة'}</p>
       {payments.length === 0 ? <EmptyState message="لا توجد مدفوعات" /> : null}
       {payments.map((p) => (
-        <div key={p.id} className="border rounded-lg p-4 flex justify-between items-center">
+        <div key={p.id} className="border border-[var(--color-card-border)] rounded-lg p-4 flex justify-between items-center">
           <div>
             <span className="font-medium">{p.amount} ر.س</span>
-            <span className="text-xs text-zinc-400 mr-3">{methodLabels[p.method_type] || p.method_type}</span>
+            <span className="text-xs text-[var(--color-text-disabled)] mr-3">{methodLabels[p.method_type] || p.method_type}</span>
             {p.proof_file_url && <a href={p.proof_file_url} target="_blank" className="text-xs text-blue-500 mr-2 hover:underline">📎 الإثبات</a>}
           </div>
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded-full text-xs ${p.status === 'approved' ? 'bg-green-100 text-green-700' : p.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs ${p.status === 'approved' ? 'bg-green-900/30 text-green-400' : p.status === 'rejected' ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
               {p.status === 'approved' ? 'مقبول' : p.status === 'rejected' ? 'مرفوض' : 'معلق'}
             </span>
             {p.status === 'pending' && canReview && (

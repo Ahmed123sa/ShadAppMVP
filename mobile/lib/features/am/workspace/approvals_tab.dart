@@ -39,7 +39,7 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/$wsId/approvals');
-      _approvals = data['approvals'] as List<dynamic>;
+      _approvals = safeList(data['approvals']);
     } catch (_) {
       _error = 'فشل تحميل طلبات الموافقة';
     }

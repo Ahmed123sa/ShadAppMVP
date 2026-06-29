@@ -1,10 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/locale_provider.dart';
 import '../../core/reverb_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../core/widgets/shad_logo.dart';
 import '../../core/widgets/stages_stepper.dart';
 import '../contracts/contracts_page.dart';
@@ -23,7 +25,7 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final _api = ApiClient();
   int _unreadNotifs = 0;
@@ -35,17 +37,19 @@ class _DashboardPageState extends State<DashboardPage> {
   String? _error;
   int _lastStage = 0;
   bool _autoAdvancing = false;
+  StreamSubscription? _fcmSubscription;
 
   int _computeStage() {
     final client = _client;
     final ws = _workspace;
     if (client == null || ws == null) return 0;
-    final contractsList = (ws['contracts'] as List?) ?? [];
-    final paymentsList = (ws['payments'] as List?) ?? [];
+    final contractsList = safeList(ws['contracts']);
+    final paymentsList = safeList(ws['payments']);
     final wsStatus = ws['status'] as String? ?? '';
     if (wsStatus == 'active') return 6;
     if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) return 5;
-    if (contractsList.any((c) => c is Map && (c['status'] == 'company_approved' || c['status'] == 'completed'))) return 4;
+    if (contractsList.any((c) => c is Map && c['status'] == 'completed')) return 4;
+    if (contractsList.any((c) => c is Map && c['status'] == 'company_approved')) return 4;
     if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) return 3;
     if (contractsList.any((c) => c is Map && c['status'] == 'sent')) return 2;
     if (client['signed_at'] != null) return 1;
@@ -58,7 +62,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   int _tabRequiredStage(int tab) {
-    const stages = [1, 4, 1, 2, 1, 1, 0, 1];
+    const stages = [1, 4, 6, 6, 6, 6, 0, 6];
     return stages[tab];
   }
 
@@ -72,6 +76,12 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadClientData();
     _loadNotifs();
     _setupRealtimeNotifications();
+    WidgetsBinding.instance.addObserver(this);
+    _contractRefreshNotifier.addListener(_onChildDataChanged);
+  }
+
+  void _onChildDataChanged() {
+    if (mounted) _loadClientData();
   }
 
   void _setupRealtimeNotifications() {
@@ -87,10 +97,31 @@ class _DashboardPageState extends State<DashboardPage> {
       _loadClientData();
       _contractRefreshNotifier.value++;
     };
+    _fcmSubscription = FirebaseMessaging.onMessage.listen((msg) {
+      final type = msg.data['type'] as String? ?? '';
+      if (type == 'contract.company_approved' || type == 'contract.completed' || type == 'payment.approved') {
+        _loadClientData();
+      }
+    });
+    FirebaseMessaging.onMessageOpenedApp.listen((msg) {
+      _loadClientData();
+      _loadNotifs();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadClientData();
+      _loadNotifs();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _contractRefreshNotifier.removeListener(_onChildDataChanged);
+    _fcmSubscription?.cancel();
     super.dispose();
   }
 
@@ -101,6 +132,12 @@ class _DashboardPageState extends State<DashboardPage> {
       final data = await _api.get('/clients/$cid');
       _client = data['client'] as Map<String, dynamic>?;
       _workspace = data['client']?['workspace'] as Map<String, dynamic>?;
+      if (_workspace != null) {
+        final wsId = _workspace!['id'] as int?;
+        if (wsId != null && wsId != _api.workspaceId) {
+          await _api.setUserData(workspace: wsId);
+        }
+      }
       _checkAutoAdvance();
     } catch (e) {
       _error = 'فشل تحميل البيانات';
@@ -288,12 +325,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  void _onStageTap(int stage) {
-    final tabMap = {1: 0, 2: 0, 3: 0, 4: 1, 5: 1};
-    final tab = tabMap[stage] ?? 0;
-    setState(() => _selectedIndex = tab);
-  }
-
   void _goToPayments() {
     setState(() => _selectedIndex = 1);
   }
@@ -301,23 +332,30 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildStageHeader() {
     final client = _client;
     final ws = _workspace;
-    int s = 0;
+    String currentStatus = 'draft';
     if (client != null && ws != null) {
-      final contractsList = (ws['contracts'] as List?) ?? [];
-      final paymentsList = (ws['payments'] as List?) ?? [];
+      final contractsList = safeList(ws['contracts']);
+      final paymentsList = safeList(ws['payments']);
       final wsStatus = ws['status'] as String? ?? '';
-      if (wsStatus == 'active') { s = 6; }
-      else {
-        if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) { s = 5; }
-        else {
-          if (contractsList.any((c) => c is Map && (c['status'] == 'company_approved' || c['status'] == 'completed'))) { s = 4; }
-          else if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) { s = 3; }
-          else if (contractsList.any((c) => c is Map && c['status'] == 'sent')) { s = 2; }
-          else if (client['signed_at'] != null) { s = 1; }
-        }
-      }
+      if (wsStatus == 'active') { currentStatus = 'completed'; }
+      else if (contractsList.any((c) => c is Map && c['status'] == 'completed')) { currentStatus = 'completed'; }
+      else if (paymentsList.any((p) => p is Map && p['status'] == 'approved')) { currentStatus = 'payment_approved'; }
+      else if (contractsList.any((c) => c is Map && c['status'] == 'company_approved')) { currentStatus = 'payment_approved'; }
+      else if (contractsList.any((c) => c is Map && c['status'] == 'client_approved')) { currentStatus = 'company_approved'; }
+      else if (contractsList.any((c) => c is Map && c['status'] == 'sent')) { currentStatus = 'client_approved'; }
+      else if (client['signed_at'] != null) { currentStatus = 'sent'; }
     }
-    return StagesStepper(currentStage: s, onStageTap: _onStageTap);
+
+    final steps = const [
+      StageStep(status: 'signed', label: 'التوقيع', icon: Icons.edit),
+      StageStep(status: 'sent', label: 'استلام العقد', icon: Icons.downloading),
+      StageStep(status: 'client_approved', label: 'موافقة العميل', icon: Icons.thumb_up),
+      StageStep(status: 'company_approved', label: 'اعتماد الشركة', icon: Icons.verified),
+      StageStep(status: 'payment_approved', label: 'الدفع', icon: Icons.payment),
+      StageStep(status: 'completed', label: 'اكتمال', icon: Icons.check_circle),
+    ];
+
+    return StagesStepper(currentStatus: currentStatus, steps: steps);
   }
 
   Widget _buildDashboard() {

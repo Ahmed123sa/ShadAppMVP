@@ -19,14 +19,14 @@ export default function ContractStatusStepper({ status, compact = false }: { sta
           <div key={step.key} className="flex items-center">
             <div className={`
               w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium
-              ${i < current ? 'bg-green-500 text-white' : ''}
-              ${i === current ? 'bg-blue-500 text-white' : ''}
-              ${i > current ? 'bg-gray-200 text-gray-400' : ''}
+              ${i < current ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''}
+              ${i === current ? 'border-2 border-[var(--color-gold)] text-[var(--color-gold)]' : ''}
+              ${i > current ? 'bg-[var(--color-card-border)] text-[var(--color-text-disabled)]' : ''}
             `}>
               {i < current ? '✓' : i + 1}
             </div>
             {i < STATUS_STEPS.length - 1 && (
-              <div className={`w-5 h-0.5 mx-0.5 ${i < current ? 'bg-green-500' : 'bg-gray-200'}`} />
+              <div className={`w-5 h-0.5 mx-0.5 ${i < current ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-card-border)]'}`} />
             )}
           </div>
         ))}
@@ -40,18 +40,18 @@ export default function ContractStatusStepper({ status, compact = false }: { sta
         <div key={step.key} className="flex items-center">
           <div className={`
             w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-            ${i < current ? 'bg-green-500 text-white' : ''}
-            ${i === current ? 'bg-blue-500 text-white' : ''}
-            ${i > current ? 'bg-gray-200 text-gray-400' : ''}
+            ${i < current ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : ''}
+            ${i === current ? 'border-2 border-[var(--color-gold)] text-[var(--color-gold)]' : ''}
+            ${i > current ? 'bg-[var(--color-card-border)] text-[var(--color-text-disabled)]' : ''}
           `}>
             {i < current ? '✓' : i + 1}
           </div>
           {i < STATUS_STEPS.length - 1 && (
-            <div className={`w-8 h-0.5 mx-1 ${i < current ? 'bg-green-500' : 'bg-gray-200'}`} />
+            <div className={`w-8 h-0.5 mx-1 ${i < current ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-card-border)]'}`} />
           )}
         </div>
       ))}
-      <span className="text-sm text-gray-500 mr-2">
+      <span className="text-sm text-[var(--color-text-secondary)] mr-2">
         {STATUS_STEPS.find(s => s.key === status)?.label || status}
       </span>
     </div>

@@ -31,9 +31,9 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/${_api.workspaceIdSafe}/approvals');
-      _approvals = data['approvals'] as List<dynamic>;
+      _approvals = safeList(data['approvals']);
     } catch (_) {
-      if (mounted) _error = AppLocalizations.of(context)!.error;
+      _approvals = [];
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -79,7 +79,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> {
   Widget build(BuildContext context) {
     if (_loading) return const LoadingState();
     if (_error != null) return ErrorState(message: _error!, onRetry: _load);
-    if (_approvals.isEmpty) return EmptyState(icon: Icons.check_circle_outlined, title: AppLocalizations.of(context)!.noClauses);
+    if (_approvals.isEmpty) return const EmptyState(icon: Icons.check_circle_outlined, title: 'لا توجد طلبات موافقة');
 
     return RefreshIndicator(
       onRefresh: _load,

@@ -40,28 +40,28 @@ export default function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} className="relative p-2 text-zinc-600 hover:text-zinc-900 transition">
+      <button onClick={() => setOpen(!open)} className="relative p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-foreground)] transition">
         <span className="text-lg">🔔</span>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">{unread}</span>
+          <span className="absolute -top-0.5 -right-0.5 bg-[var(--color-primary)] text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">{unread}</span>
         )}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border z-50 max-h-96 overflow-y-auto">
-          <div className="p-3 border-b flex justify-between items-center">
+        <div className="absolute left-0 top-full mt-2 w-80 bg-[var(--color-card)] border border-[var(--color-card-border)] z-50 max-h-96 overflow-y-auto">
+          <div className="p-3 border-b border-[var(--color-card-border)] flex justify-between items-center">
             <h3 className="text-sm font-bold">الإشعارات</h3>
-            <button onClick={() => { notifications.forEach((n) => { if (!n.read_at) markRead(n.id); }); }} className="text-xs text-blue-600 hover:underline">تحديد الكل كمقروء</button>
+            <button onClick={() => { notifications.forEach((n) => { if (!n.read_at) markRead(n.id); }); }} className="text-xs text-[var(--color-gold)] hover:underline">تحديد الكل كمقروء</button>
           </div>
           {notifications.length === 0 ? (
-            <p className="text-xs text-zinc-400 p-4 text-center">لا توجد إشعارات</p>
+            <p className="text-xs text-[var(--color-text-disabled)] p-4 text-center">لا توجد إشعارات</p>
           ) : (
             notifications.map((n) => (
               <a key={n.id} href={getHref(n)} onClick={(e) => { if (!n.read_at) markRead(n.id); const href = getHref(n); if (href !== '#') { e.preventDefault(); router.push(href); } }}
-                className={`block p-3 border-b last:border-0 hover:bg-zinc-50 transition ${n.read_at ? '' : 'bg-blue-50'}`}>
+                className={`block p-3 border-b border-[var(--color-card-border)] last:border-0 hover:bg-[var(--color-card-border)] transition ${n.read_at ? '' : 'bg-[var(--color-primary)]/10'}`}>
                 <p className="text-xs font-medium">{n.data?.title || ''}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{n.data?.message || ''}</p>
-                <p className="text-[10px] text-zinc-400 mt-1">{new Date(n.created_at).toLocaleDateString('ar-SA')}</p>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{n.data?.message || ''}</p>
+                <p className="text-[10px] text-[var(--color-text-disabled)] mt-1">{new Date(n.created_at).toLocaleDateString('ar-SA')}</p>
               </a>
             ))
           )}

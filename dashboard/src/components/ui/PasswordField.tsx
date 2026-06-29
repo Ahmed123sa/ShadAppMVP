@@ -45,7 +45,7 @@ export default function PasswordField({
 
   return (
     <div className="space-y-1">
-      {label && <label className="block text-xs text-zinc-500">{label}</label>}
+      {label && <label className="block text-xs text-[var(--color-text-secondary)]">{label}</label>}
       <div className="relative">
         <input
           type={visible ? 'text' : 'password'}
@@ -56,12 +56,12 @@ export default function PasswordField({
           disabled={disabled}
           name={name}
           dir="ltr"
-          className={`border rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 pe-10 ${className}`}
+          className={`rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[var(--color-gold)] pe-10 bg-[var(--color-input-fill)] border border-[var(--color-input-border)] text-[var(--color-foreground)] ${className}`}
         />
         <button
           type="button"
           onClick={() => setVisible(!visible)}
-          className="absolute inset-y-0 end-0 flex items-center px-3 text-zinc-400 hover:text-zinc-600"
+          className="absolute inset-y-0 end-0 flex items-center px-3 text-[var(--color-text-disabled)] hover:text-[var(--color-text-secondary)]"
           tabIndex={-1}
         >
           {visible ? (
@@ -78,7 +78,7 @@ export default function PasswordField({
       </div>
       {showStrength && value.length > 0 && (
         <div className="space-y-1">
-          <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[var(--color-card-border)] rounded-full overflow-hidden">
             <div className={`h-full ${strengthBar} transition-all duration-300`} style={{ width: `${(strength / 3) * 100}%` }} />
           </div>
           <p className={`text-[11px] ${strengthColor}`}>{strengthLabel}</p>

@@ -65,57 +65,57 @@ export default function ClientSettingsPage() {
   };
 
   if (loading) return <div className="py-20"><LoadingSkeleton message="جاري تحميل..." /></div>;
-  if (!client) return <div className="py-20 text-center text-zinc-500">العميل غير موجود</div>;
+  if (!client) return <div className="py-20 text-center text-[var(--color-text-secondary)]">العميل غير موجود</div>;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-zinc-500 hover:text-zinc-800">&larr; رجوع</button>
+        <button onClick={() => router.back()} className="text-[var(--color-text-secondary)] hover:text-[var(--color-foreground)]">&larr; رجوع</button>
         <h1 className="text-xl font-bold">إعدادات: {client.company_name}</h1>
       </div>
 
       {success && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-700 text-sm">تم حفظ الإعدادات بنجاح</div>
+        <div className="bg-emerald-900/30 border border-emerald-800/30 rounded-xl p-4 text-emerald-400 text-sm">تم حفظ الإعدادات بنجاح</div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-24 h-24 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200">
+          <div className="w-24 h-24 rounded-full bg-[var(--color-input-fill)] overflow-hidden border-2 border-[var(--color-card-border)]">
             {avatarPreview ? (
               <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl text-zinc-400">
+              <div className="w-full h-full flex items-center justify-center text-3xl text-[var(--color-text-disabled)]">
                 {client.company_name?.[0] || '?'}
               </div>
             )}
           </div>
           <button onClick={() => avatarInputRef.current?.click()} type="button"
-            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+            className="bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-4 py-2 rounded-lg text-sm transition-colors">
             تغيير الصورة
           </button>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-zinc-500">اسم الشركة</label>
-          <input value={client.company_name} disabled className="border rounded-lg px-4 py-2 text-sm w-full bg-zinc-50 text-zinc-400" />
+          <label className="text-xs text-[var(--color-text-secondary)]">اسم الشركة</label>
+          <input value={client.company_name} disabled className="border border-[var(--color-card-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-card-border)] text-[var(--color-text-disabled)]" />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-zinc-500">الشخص المسؤول</label>
+          <label className="text-xs text-[var(--color-text-secondary)]">الشخص المسؤول</label>
           <input value={contactPerson} onChange={(e) => setContactPerson(e.target.value)}
-            className="border rounded-lg px-4 py-2 text-sm w-full" />
+            className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm w-full" />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-zinc-500">البريد الإلكتروني</label>
-          <input value={client.email} disabled className="border rounded-lg px-4 py-2 text-sm w-full bg-zinc-50 text-zinc-400" dir="ltr" />
+          <label className="text-xs text-[var(--color-text-secondary)]">البريد الإلكتروني</label>
+          <input value={client.email} disabled className="border border-[var(--color-card-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-card-border)] text-[var(--color-text-disabled)]" dir="ltr" />
         </div>
 
         <PasswordField value={password} onChange={setPassword} label="تغيير كلمة المرور" placeholder="اتركه فارغاً إذا لا تريد التغيير" opt />
 
         <button onClick={saveProfile} disabled={saving}
-          className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">
+          className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50 w-full">
           {saving ? '...' : 'حفظ الإعدادات'}
         </button>
       </div>

@@ -76,10 +76,10 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
     return (
       <div className="text-center py-10 space-y-3">
         <span className="text-4xl block">{!wsActive ? '🔒' : '👁️'}</span>
-        <p className="text-zinc-500 text-sm">
+        <p className="text-[var(--color-text-secondary)] text-sm">
           {!wsActive ? 'المحادثة غير متاحة — في انتظار اكتمال الدفع وتفعيل مساحة العمل' : 'عرض المحادثة فقط'}
         </p>
-        <div className="h-72 overflow-y-auto space-y-3 border rounded-lg p-3 bg-zinc-50">
+        <div className="h-72 overflow-y-auto space-y-3 border border-[var(--color-card-border)] rounded-lg p-3 bg-[var(--color-card-border)]">
           {contracts.length > 0 && contracts.map((c) => (
             <ChatContractCard key={`contract-${c.id}`} contract={c} onAction={() => {}} />
           ))}
@@ -99,8 +99,8 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
                   </div>
                 )}
                 <div>
-                  <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
-                    <p className="text-xs text-zinc-500 mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
+                  <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-input-fill)] text-[var(--color-foreground)]'}`}>
+                    <p className="text-xs text-[var(--color-text-secondary)] mb-0.5">{isClient ? (m.sender?.name || 'العميل') : ((m.sender?.role === 'super_admin' ? 'مشرف' : 'مدير حساب') + ': ' + (m.sender?.name || ''))}</p>
                     {m.message}
                   </div>
                 </div>
@@ -109,7 +109,7 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
                     {m.sender?.avatar_url ? (
                       <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600 font-medium">{initial}</div>
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-[var(--color-text-secondary)] font-medium">{initial}</div>
                     )}
                   </div>
                 )}
@@ -130,14 +130,14 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
   return (
     <div className="space-y-4">
       {!showBuilder ? (
-        <button onClick={() => setShowBuilder(true)} className="text-sm text-blue-600 hover:underline font-medium">
+        <button onClick={() => setShowBuilder(true)} className="text-sm text-[var(--color-gold)] hover:underline font-medium">
           + إرسال عقد خدمة إضافية
         </button>
       ) : (
         <ContractBuilder wsId={wsId} onCreated={onContractCreated} onCancel={() => setShowBuilder(false)} />
       )}
 
-      <div className="h-72 overflow-y-auto space-y-3 border rounded-lg p-3 bg-zinc-50">
+      <div className="h-72 overflow-y-auto space-y-3 border border-[var(--color-card-border)] rounded-lg p-3 bg-[var(--color-card-border)]">
         {contracts.length > 0 && contracts.map((c) => (
           <ChatContractCard key={`contract-${c.id}`} contract={c} onAction={doContractAction} />
         ))}
@@ -162,14 +162,14 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
                 </div>
               )}
               <div>
-                <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-zinc-200 text-zinc-800' : 'bg-blue-100 text-blue-900'}`}>
-                  <p className="text-xs text-zinc-500 mb-0.5">{senderLabel}</p>
+                <div className={`px-3 py-2 rounded-lg text-sm ${isClient ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-input-fill)] text-[var(--color-foreground)]'}`}>
+                  <p className="text-xs text-[var(--color-text-secondary)] mb-0.5">{senderLabel}</p>
                   {m.type === 'file' && m.file_url && (
                     <div className="mb-1">
                       {m.file_url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
                         <img src={m.file_url} alt="مرفق" className="max-w-full rounded-lg max-h-40" />
                       ) : (
-                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">📎 عرض المرفق</a>
+                        <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-gold)] underline text-xs">📎 عرض المرفق</a>
                       )}
                     </div>
                   )}
@@ -177,7 +177,7 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
                   {isPending && <p className="text-xs text-red-500 mt-1 font-medium">🏷️ طلب موافقة — قيد الانتظار</p>}
                   {isResponded && <p className={`text-xs mt-1 font-medium ${m.action_result === 'approved' ? 'text-emerald-600' : m.action_result === 'rejected' ? 'text-red-600' : 'text-amber-600'}`}>{actionResultLabel[m.action_result || '']}</p>}
                   {approval?.certificate?.pdf_url && (
-                    <a href={`/storage/${approval.certificate.pdf_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline block mt-1">📄 تحميل شهادة الموافقة</a>
+                    <a href={`/storage/${approval.certificate.pdf_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--color-gold)] underline block mt-1">📄 تحميل شهادة الموافقة</a>
                   )}
                 </div>
                 {isClient && (
@@ -185,12 +185,12 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
                     {m.sender?.avatar_url ? (
                       <img src={resolveFileUrl(m.sender.avatar_url)} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600 font-medium">{initial}</div>
+                      <div className="w-full h-full flex items-center justify-center text-xs text-[var(--color-text-secondary)] font-medium">{initial}</div>
                     )}
                   </div>
                 )}
                 {!isClient && !m.action_taken && (
-                  <button onClick={() => toggleAction(m.id)} className={`text-xs mt-0.5 ${m.requires_action ? 'text-red-500' : 'text-zinc-400'} hover:underline`}>
+                  <button onClick={() => toggleAction(m.id)} className={`text-xs mt-0.5 ${m.requires_action ? 'text-red-500' : 'text-[var(--color-text-disabled)]'} hover:underline`}>
                     {m.requires_action ? 'إلغاء طلب الموافقة' : 'طلب موافقة العميل'}
                   </button>
                 )}
@@ -204,11 +204,11 @@ export default function ChatTab({ wsId, wsActive }: { wsId: number; wsActive?: b
 
       <div className="flex gap-2">
         <input type="file" ref={fileRef} className="hidden" onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
-        <button onClick={() => fileRef.current?.click()} className="text-zinc-500 hover:text-blue-600 text-lg px-1" title="إرفاق ملف">📎</button>
-        {uploadFile && <span className="text-xs text-blue-600 self-center truncate max-w-24">{uploadFile.name}</span>}
+        <button onClick={() => fileRef.current?.click()} className="text-[var(--color-text-secondary)] hover:text-[var(--color-gold)] text-lg px-1" title="إرفاق ملف">📎</button>
+        {uploadFile && <span className="text-xs text-[var(--color-gold)] self-center truncate max-w-24">{uploadFile.name}</span>}
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()}
-          className="flex-1 border rounded-lg px-3 py-2 text-sm" placeholder="اكتب رسالة..." />
-        <button onClick={send} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">إرسال</button>
+          className="flex-1 border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm bg-[var(--color-input-fill)] text-[var(--color-foreground)]" placeholder="اكتب رسالة..." />
+        <button onClick={send} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-primary-dark)]">إرسال</button>
       </div>
       {sendError && <p className="text-xs text-red-500">{sendError}</p>}
     </div>

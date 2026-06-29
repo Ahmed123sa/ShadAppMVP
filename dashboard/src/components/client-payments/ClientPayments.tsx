@@ -64,12 +64,12 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
   return (
     <div className="space-y-3">
       {!pendingPayment && (contractTitle || payments.some(p => p.status === 'approved' && !p.contract_id)) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-amber-900/30 border border-amber-200 rounded-xl p-4">
           <p className="text-sm text-amber-700 font-medium">💳 {contractTitle ? `عقد "${contractTitle}" معتمد — المبلغ المطلوب: ${contractValue} ر.س` : 'العقد معتمد, برجاء البدء في إجراءات الدفع'}</p>
         </div>
       )}
       {(pendingPayment || contractTitle) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+        <div className="bg-blue-900/30 border border-blue-200 rounded-xl p-5 space-y-4">
           <div className="flex items-start gap-3">
             <span className="text-2xl">💳</span>
             <div>
@@ -78,26 +78,26 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
               ) : (
                 <p className="font-medium text-blue-800">إتمام الدفع للعقد "{contractTitle}"</p>
               )}
-              <p className="text-xs text-blue-600 mt-0.5">يرجى رفع إثبات الدفع بعد تحويل المبلغ</p>
+              <p className="text-xs text-[var(--color-gold)] mt-0.5">يرجى رفع إثبات الدفع بعد تحويل المبلغ</p>
             </div>
           </div>
           <div className="space-y-3">
             <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" placeholder="المبلغ"
-              className="border rounded-lg px-4 py-2 text-sm w-full bg-white" />
+              className="border border-[var(--color-input-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)] placeholder-[var(--color-text-disabled)]" />
             <select value={methodType} onChange={(e) => setMethodType(e.target.value)}
-              className="border rounded-lg px-4 py-2 text-sm w-full bg-white">
+              className="border border-[var(--color-input-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)]">
               <option value="">طريقة الدفع</option>
               {methods.map((m) => <option key={m} value={m}>{methodLabels[m] || m}</option>)}
             </select>
-            <label className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
+            <label className="flex items-center gap-2 text-sm text-[var(--color-gold)] cursor-pointer hover:text-[var(--color-gold)]">
               <input type="file" accept="image/*,.pdf" className="hidden"
                 onChange={(e) => setProofFile(e.target.files?.[0] || null)} />
-              <span className="border border-blue-200 rounded-lg px-4 py-2 bg-white">
+              <span className="border border-blue-200 rounded-lg px-4 py-2 bg-[var(--color-card)]">
                 {proofFile ? proofFile.name : '+ اختيار ملف الإثبات'}
               </span>
             </label>
             <button onClick={submit} disabled={saving || !amount || !methodType}
-              className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="w-full bg-[var(--color-primary)] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
               {saving ? 'جاري الحفظ...' : 'إرسال إثبات الدفع'}
             </button>
           </div>
@@ -108,20 +108,20 @@ export default function ClientPayments({ wsId }: { wsId: number }) {
       {payments.map((p) => {
         const linkedContract = p.contract;
         return (
-        <div key={p.id} className="border rounded-lg p-4 flex justify-between items-center">
+        <div key={p.id} className="border border-[var(--color-card-border)] rounded-lg p-4 flex justify-between items-center">
           <div>
             <p className="font-medium">{p.amount} ر.س</p>
-            <p className="text-xs text-zinc-400">{methodLabels[p.method_type] || p.method_type}</p>
-            {linkedContract && <p className="text-xs text-zinc-500 mt-0.5">📄 {linkedContract.title}</p>}
+            <p className="text-xs text-[var(--color-text-disabled)]">{methodLabels[p.method_type] || p.method_type}</p>
+            {linkedContract && <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">📄 {linkedContract.title}</p>}
             {p.proof_file_url && (
               <a href={p.proof_file_url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:underline">📎 عرض الإثبات</a>
+                className="text-xs text-[var(--color-gold)] hover:underline">📎 عرض الإثبات</a>
             )}
           </div>
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            p.status === 'approved' ? 'bg-green-100 text-green-700' :
-            p.status === 'rejected' ? 'bg-red-100 text-red-700' :
-            'bg-yellow-100 text-yellow-700'
+            p.status === 'approved' ? 'bg-green-900/30 text-green-400' :
+            p.status === 'rejected' ? 'bg-red-900/30 text-red-400' :
+            'bg-yellow-900/30 text-yellow-400'
           }`}>
             {p.status === 'approved' ? 'مقبول' : p.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
           </span>

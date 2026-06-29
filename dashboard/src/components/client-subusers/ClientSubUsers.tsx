@@ -46,29 +46,29 @@ export default function ClientSubUsers({ clientId }: { clientId: number }) {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => setShowForm(!showForm)} className="text-sm text-blue-600 hover:underline font-medium">
+      <button onClick={() => setShowForm(!showForm)} className="text-sm text-[var(--color-gold)] hover:underline font-medium">
         + مستخدم جديد
       </button>
 
       {showForm && (
-        <div className="space-y-2 border rounded-lg p-4 bg-zinc-50">
+        <div className="space-y-2 border border-[var(--color-card-border)] rounded-lg p-4 bg-[var(--color-card-border)]">
           {error && <p className="text-xs text-red-500">{error}</p>}
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="الاسم" className="border rounded-lg px-3 py-2 text-sm w-full" />
+            placeholder="الاسم" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)] placeholder-[var(--color-text-disabled)]" />
           <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-            type="email" placeholder="البريد الإلكتروني" className="border rounded-lg px-3 py-2 text-sm w-full" dir="ltr" />
+            type="email" placeholder="البريد الإلكتروني" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)] placeholder-[var(--color-text-disabled)]" dir="ltr" />
           <PasswordField value={form.password} onChange={(v) => setForm({ ...form, password: v })} placeholder="كلمة المرور" />
-          <button onClick={create} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">حفظ</button>
+          <button onClick={create} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-primary-dark)]">حفظ</button>
         </div>
       )}
 
       {subUsers.length === 0 ? <EmptyState message="لا يوجد مستخدمون تابعون" /> : null}
       <div className="space-y-2">
         {subUsers.map((u) => (
-          <div key={u.id} className="border rounded-lg p-3 text-sm flex items-center justify-between">
+          <div key={u.id} className="border border-[var(--color-card-border)] rounded-lg p-3 text-sm flex items-center justify-between">
             <div>
               <p className="font-medium">{u.name}</p>
-              <p className="text-xs text-zinc-400" dir="ltr">{u.email}</p>
+              <p className="text-xs text-[var(--color-text-disabled)]" dir="ltr">{u.email}</p>
             </div>
             <button onClick={() => remove(u.id)} className="text-xs text-red-500 hover:underline">حذف</button>
           </div>

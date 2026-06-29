@@ -44,23 +44,23 @@ export default function FilesTab({ wsId }: { wsId: number }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
-        {definitions.map((d) => <span key={d.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">{d.name} {d.is_required ? '*' : ''}</span>)}
-        <button onClick={() => setShowDefForm(!showDefForm)} className="text-xs text-blue-600 hover:underline">+ تعريف مستند</button>
+        {definitions.map((d) => <span key={d.id} className="px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded-full text-xs">{d.name} {d.is_required ? '*' : ''}</span>)}
+        <button onClick={() => setShowDefForm(!showDefForm)} className="text-xs text-[var(--color-gold)] hover:underline">+ تعريف مستند</button>
       </div>
       {showDefForm && (
         <div className="flex gap-2">
-          <input value={defName} onChange={(e) => setDefName(e.target.value)} placeholder="اسم المستند المطلوب" className="border rounded-lg px-3 py-2 text-sm flex-1" />
-          <button onClick={addDef} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm">حفظ</button>
+          <input value={defName} onChange={(e) => setDefName(e.target.value)} placeholder="اسم المستند المطلوب" className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm flex-1 bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
+          <button onClick={addDef} className="bg-[var(--color-primary)] text-white px-3 py-2 rounded-lg text-sm">حفظ</button>
         </div>
       )}
 
       {!isSA && (
         <div className="flex gap-2 items-center">
-          <select value={uploadDef} onChange={(e) => setUploadDef(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+          <select value={uploadDef} onChange={(e) => setUploadDef(e.target.value)} className="border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-sm bg-[var(--color-input-fill)] text-[var(--color-foreground)]">
             <option value="">بدون تصنيف</option>
             {definitions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
-          <label className="inline-flex items-center gap-1.5 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
+          <label className="inline-flex items-center gap-1.5 text-sm text-[var(--color-gold)] cursor-pointer hover:text-[var(--color-gold)]">
             <input type="file" className="hidden" onChange={upload} />+ رفع ملف
           </label>
         </div>
@@ -69,10 +69,10 @@ export default function FilesTab({ wsId }: { wsId: number }) {
       {files.length === 0 ? <EmptyState message="لا توجد ملفات" /> : null}
       <div className="space-y-2">
         {files.map((f) => (
-          <div key={f.id} className="border rounded-lg p-3 text-sm flex items-center justify-between">
+          <div key={f.id} className="border border-[var(--color-card-border)] rounded-lg p-3 text-sm flex items-center justify-between">
             <div>
               <p className="font-medium">{f.name}</p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-[var(--color-text-disabled)]">
                 {f.document_definition?.name ? `${f.document_definition.name} • ` : ''}
                 {f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}
                 {f.reviewed_by ? ` • تمت المراجعة` : ''}
@@ -80,7 +80,7 @@ export default function FilesTab({ wsId }: { wsId: number }) {
               {f.rejection_reason && <p className="text-xs text-red-500 mt-1">السبب: {f.rejection_reason}</p>}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-full text-xs ${f.status === 'approved' ? 'bg-green-100 text-green-700' : f.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${f.status === 'approved' ? 'bg-green-900/30 text-green-400' : f.status === 'rejected' ? 'bg-red-900/30 text-red-400' : 'bg-yellow-900/30 text-yellow-400'}`}>
                 {f.status === 'approved' ? 'مقبول' : f.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
               </span>
               {!isSA && f.status === 'pending' && (

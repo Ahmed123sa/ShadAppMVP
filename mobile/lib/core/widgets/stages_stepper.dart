@@ -20,19 +20,34 @@ class StagesStepper extends StatelessWidget {
     final activeIndex = currentIndex >= 0 ? currentIndex : 0;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         color: ShadColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: ShadColors.cardBorder),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < steps.length; i++)
-            _buildStep(context, i, activeIndex),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (int i = 0; i < steps.length; i++) ...[
+              if (i > 0) _buildConnector(i - 1, activeIndex),
+              _buildStep(context, i, activeIndex),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnector(int index, int activeIndex) {
+    final isCompleted = index < activeIndex;
+    return Container(
+      width: 24,
+      height: 2,
+      decoration: BoxDecoration(
+        color: isCompleted ? ShadColors.success : ShadColors.cardBorder,
+        borderRadius: BorderRadius.circular(1),
       ),
     );
   }
@@ -42,49 +57,45 @@ class StagesStepper extends StatelessWidget {
     final isCompleted = index < activeIndex;
     final isActive = index == activeIndex;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isCompleted
-                  ? ShadColors.success.withAlpha(30)
-                  : isActive
-                      ? ShadColors.gold.withAlpha(30)
-                      : ShadColors.cardBorder,
-              border: Border.all(
-                color: isCompleted
-                    ? ShadColors.success
-                    : isActive ? ShadColors.gold : ShadColors.textDisabled,
-                width: isActive ? 2 : 1,
-              ),
-            ),
-            child: Icon(
-              isCompleted ? Icons.check : step.icon,
-              size: 14,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28, height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isCompleted
+                ? ShadColors.success.withAlpha(30)
+                : isActive
+                    ? ShadColors.gold.withAlpha(30)
+                    : ShadColors.cardBorder,
+            border: Border.all(
               color: isCompleted
                   ? ShadColors.success
                   : isActive ? ShadColors.gold : ShadColors.textDisabled,
+              width: isActive ? 2 : 1,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              step.label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isCompleted || isActive
-                    ? ShadColors.text
-                    : ShadColors.textDisabled,
-              ),
-            ),
+          child: Icon(
+            isCompleted ? Icons.check : step.icon,
+            size: 14,
+            color: isCompleted
+                ? ShadColors.success
+                : isActive ? ShadColors.gold : ShadColors.textDisabled,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          step.label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            color: isCompleted || isActive
+                ? ShadColors.textPrimary
+                : ShadColors.textDisabled,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -34,7 +34,7 @@ export default function StagesStepper({ client, workspace, onStageClick }: { cli
   const current = getCurrentStage(client, workspace);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-4">
+    <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-4">
       <div className="flex items-center justify-between gap-1 overflow-x-auto">
         {STAGES.map((stage, i) => {
           const done = i < current;
@@ -44,22 +44,22 @@ export default function StagesStepper({ client, workspace, onStageClick }: { cli
                 <button onClick={() => onStageClick?.(STAGE_TO_TAB[i] || 'العقود')}
                   className={`flex flex-col items-center gap-1 min-w-0 cursor-pointer ${active ? 'opacity-100' : done ? 'opacity-100' : 'opacity-40'} hover:opacity-80 transition-opacity`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors ${
-                    done ? 'bg-emerald-100 text-emerald-600' :
-                    active ? 'bg-blue-100 text-blue-600 ring-2 ring-blue-300' :
-                    'bg-zinc-100 text-zinc-400'
+                    done ? 'bg-[var(--color-primary)] text-white' :
+                    active ? 'border border-[var(--color-gold)] text-[var(--color-gold)]' :
+                    'bg-[var(--color-text-disabled)] text-white'
                   }`}>
                     {done ? '✓' : stage.icon}
                   </div>
                   <span className={`text-[10px] whitespace-nowrap text-center ${
-                    done ? 'text-emerald-600 font-medium' :
-                    active ? 'text-blue-600 font-medium' :
-                    'text-zinc-400'
+                    done ? 'text-[var(--color-primary)] font-medium' :
+                    active ? 'text-[var(--color-gold)] font-medium' :
+                    'text-[var(--color-text-disabled)]'
                   }`}>
                     {stage.label}
                   </span>
                 </button>
               {i < STAGES.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-1 rounded ${i < current ? 'bg-emerald-400' : 'bg-zinc-200'}`} />
+                <div className={`flex-1 h-0.5 mx-1 rounded ${i < current ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-card-border)]'}`} />
               )}
             </div>
           );

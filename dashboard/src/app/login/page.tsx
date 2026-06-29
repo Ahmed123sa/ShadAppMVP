@@ -30,10 +30,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] px-4">
+      <div className="w-full max-w-md bg-[var(--color-card)] rounded-2xl shadow-lg p-8 border border-[var(--color-card-border)]">
         <h1 className="text-2xl font-bold text-center mb-1">ShadApp</h1>
-        <p className="text-zinc-500 text-center text-sm mb-6">منصة إدارة العلاقات والموافقات</p>
+        <p className="text-[var(--color-text-secondary)] text-center text-sm mb-6">منصة إدارة العلاقات والموافقات</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -41,12 +41,12 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">البريد الإلكتروني</label>
+            <label className="block text-sm font-medium text-[var(--color-foreground)] mb-1">البريد الإلكتروني</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-zinc-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-[var(--color-card-border)] rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[var(--color-input-fill)] text-[var(--color-foreground)]"
               required
               dir="ltr"
             />
@@ -57,14 +57,14 @@ export default function LoginPage() {
             <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-[var(--color-primary)] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50"
             >
             {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-zinc-500 mt-4">
-            <Link href="/client-login" className="text-blue-600 hover:underline">تسجيل دخول العميل</Link>
+          <p className="text-center text-sm text-[var(--color-text-secondary)] mt-4">
+            <Link href="/client-login" className="text-[var(--color-gold)] hover:underline">تسجيل دخول العميل</Link>
           </p>
         </div>
     </div>

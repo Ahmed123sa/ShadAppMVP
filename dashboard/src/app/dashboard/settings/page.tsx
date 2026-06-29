@@ -185,50 +185,50 @@ export default function SettingsPage() {
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-700 text-sm">{t('saved')}</div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('avatar')}</h2>
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200">
+          <div className="w-20 h-20 rounded-full bg-[var(--color-input-fill)] overflow-hidden border-2 border-zinc-200">
             {avatarPreview ? (
               <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl text-zinc-400">
+              <div className="w-full h-full flex items-center justify-center text-2xl text-[var(--color-text-disabled)]">
                 {user?.name?.[0] || '?'}
               </div>
             )}
           </div>
           <button onClick={() => avatarInputRef.current?.click()} type="button"
-            className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+            className="bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-4 py-2 rounded-lg text-sm transition-colors">
             {t('change_avatar')}
           </button>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('name')}</h2>
         <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-          className="border rounded-lg px-4 py-2 text-sm w-full" placeholder={t('name')} />
+          className="border border-[var(--color-input-border)] bg-[var(--color-input-fill)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm w-full" placeholder={t('name')} />
       </div>
 
-      {!isAM && <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      {!isAM && <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('official_email')}</h2>
-        <p className="text-xs text-zinc-500">{t('official_email_hint')}</p>
+        <p className="text-xs text-[var(--color-text-secondary)]">{t('official_email_hint')}</p>
         <input value={officialEmail} onChange={(e) => setOfficialEmail(e.target.value)}
-          className="border rounded-lg px-4 py-2 text-sm w-full" type="email" placeholder={t('official_email')} dir="ltr" />
+          className="border border-[var(--color-input-border)] bg-[var(--color-input-fill)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm w-full" type="email" placeholder={t('official_email')} dir="ltr" />
       </div>}
 
-      {!isAM && <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+      {!isAM && <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-4">
         <h2 className="text-lg font-semibold">{t('signature')}</h2>
-        <p className="text-xs text-zinc-500">{t('signature_hint')}</p>
+        <p className="text-xs text-[var(--color-text-secondary)]">{t('signature_hint')}</p>
 
         {savedSignature ? (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-zinc-600">{t('saved_signature')}</p>
+            <p className="text-sm font-medium text-[var(--color-text-secondary)]">{t('saved_signature')}</p>
             {savedSignature.type === 'text' ? (
-              <p className="text-lg font-[cursive] border rounded-lg p-4 bg-zinc-50 text-center">{savedSignature.data}</p>
+              <p className="text-lg font-[cursive] border border-[var(--color-card-border)] rounded-lg p-4 bg-[var(--color-card-border)] text-center">{savedSignature.data}</p>
             ) : (
-              <img src={resolveFileUrl(savedSignature.data)} alt="التوقيع المحفوظ" className="max-h-20 border rounded-lg p-2 bg-zinc-50" />
+              <img src={resolveFileUrl(savedSignature.data)} alt="التوقيع المحفوظ" className="max-h-20 border border-[var(--color-card-border)] rounded-lg p-2 bg-[var(--color-card-border)]" />
             )}
             <button onClick={deleteSignature} disabled={deletingSig}
               className="text-red-600 hover:text-red-700 text-xs underline disabled:opacity-50">
@@ -241,15 +241,15 @@ export default function SettingsPage() {
 
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => { setSignatureType('draw'); setTypedSignature(''); setUploadedSignatureFile(null); setUploadedSignaturePreview(''); }}
-            className={`px-4 py-2 rounded-lg text-sm border transition-colors ${signatureType === 'draw' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-zinc-50'}`}>
+            className={`px-4 py-2 rounded-lg text-sm border border-[var(--color-card-border)] transition-colors ${signatureType === 'draw' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-[var(--color-card-border)]'}`}>
             {t('draw_signature')}
           </button>
           <button onClick={() => { setSignatureType('type'); setUploadedSignatureFile(null); setUploadedSignaturePreview(''); }}
-            className={`px-4 py-2 rounded-lg text-sm border transition-colors ${signatureType === 'type' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-zinc-50'}`}>
+            className={`px-4 py-2 rounded-lg text-sm border border-[var(--color-card-border)] transition-colors ${signatureType === 'type' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-[var(--color-card-border)]'}`}>
             {t('type_signature')}
           </button>
           <button onClick={() => { setSignatureType('upload'); setTypedSignature(''); }}
-            className={`px-4 py-2 rounded-lg text-sm border transition-colors ${signatureType === 'upload' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-zinc-50'}`}>
+            className={`px-4 py-2 rounded-lg text-sm border border-[var(--color-card-border)] transition-colors ${signatureType === 'upload' ? 'bg-blue-100 border-blue-300 text-blue-700' : 'hover:bg-[var(--color-card-border)]'}`}>
             {t('upload_signature')}
           </button>
         </div>
@@ -258,21 +258,21 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <canvas ref={canvasRef} width={400} height={150}
               onMouseDown={startDraw} onMouseMove={drawSignature} onMouseUp={stopDraw} onMouseLeave={stopDraw}
-              className="border rounded-lg w-full cursor-crosshair bg-white" />
-            <button onClick={clearCanvas} className="text-xs text-zinc-500 hover:text-red-500">مسح</button>
+              className="border border-[var(--color-card-border)] rounded-lg w-full cursor-crosshair bg-[var(--color-card)]" />
+            <button onClick={clearCanvas} className="text-xs text-[var(--color-text-secondary)] hover:text-red-500">مسح</button>
           </div>
         )}
 
         {signatureType === 'type' && (
           <input value={typedSignature} onChange={(e) => setTypedSignature(e.target.value)}
-            className="border rounded-lg px-4 py-3 text-lg font-[cursive] w-full text-center"
+            className="border border-[var(--color-input-border)] bg-[var(--color-input-fill)] text-[var(--color-foreground)] rounded-lg px-4 py-3 text-lg font-[cursive] w-full text-center"
             placeholder="اكتب اسمك كاملاً" />
         )}
 
         {signatureType === 'upload' && (
           <div className="space-y-2">
             <button onClick={() => sigUploadInputRef.current?.click()} type="button"
-              className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm inline-block transition-colors">
+              className="bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-4 py-2 rounded-lg text-sm inline-block transition-colors">
               {t('upload_signature')}
             </button>
             <input ref={sigUploadInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
@@ -280,7 +280,7 @@ export default function SettingsPage() {
               if (file) { setUploadedSignatureFile(file); setUploadedSignaturePreview(URL.createObjectURL(file)); }
             }} />
             {uploadedSignaturePreview && (
-              <img src={uploadedSignaturePreview} alt="" className="max-h-20 border rounded-lg p-2" />
+              <img src={uploadedSignaturePreview} alt="" className="max-h-20 border border-[var(--color-card-border)] rounded-lg p-2" />
             )}
           </div>
         )}
@@ -294,7 +294,7 @@ export default function SettingsPage() {
       </div>}
 
       <button onClick={saveProfile} disabled={saving}
-        className="bg-blue-600 text-white px-8 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">
+        className="bg-[var(--color-primary)] text-white px-8 py-3 rounded-xl text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50 w-full">
         {saving ? '...' : t('save')}
       </button>
     </div>

@@ -21,7 +21,7 @@ Route::post('/auth/register', [AuthController::class, 'registerSuperAdmin']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/client/login', [AuthController::class, 'clientLogin']);
 
-// Chat + Notifications — allows both admin (sanctum) and client (client) auth
+// Dual-auth routes — allows both admin (sanctum) and client (client) guard
 Route::middleware('auth.any:sanctum,client')->group(function () {
     Route::get('/workspaces/{workspace}/chat', [ChatController::class, 'index']);
     Route::post('/workspaces/{workspace}/chat', [ChatController::class, 'store']);
@@ -39,6 +39,16 @@ Route::middleware('auth.any:sanctum,client')->group(function () {
     Route::post('/clients/{client}/sign', [ClientController::class, 'sign']);
     Route::delete('/clients/{client}/sign', [ClientController::class, 'deleteSign']);
     Route::match(['put', 'post'], '/clients/{client}/profile', [ClientController::class, 'profileUpdate']);
+
+    // Workspace — client needs to load their own workspace
+    Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
+
+    // Client-features — accessible by both client and manager
+    Route::get('/workspaces/{workspace}/contracts', [ContractController::class, 'index']);
+    Route::get('/workspaces/{workspace}/payments', [PaymentController::class, 'index']);
+    Route::post('/workspaces/{workspace}/payments', [PaymentController::class, 'store']);
+    Route::get('/workspaces/{workspace}/approvals', [ApprovalController::class, 'index']);
+    Route::get('/workspaces/{workspace}/meetings', [MeetingController::class, 'index']);
 
     // Files — client needs to upload/download too
     Route::get('/workspaces/{workspace}/files', [FileController::class, 'index']);
@@ -73,7 +83,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Workspace
     Route::post('/workspaces', [WorkspaceController::class, 'store']);
-    Route::get('/workspaces/{workspace}', [WorkspaceController::class, 'show']);
     Route::post('/workspaces/{workspace}/activate', [WorkspaceController::class, 'activate']);
 
     // All contracts/meetings (SuperAdmin)
@@ -81,7 +90,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/all-meetings', [MeetingController::class, 'allMeetings']);
 
     // Contracts
-    Route::get('/workspaces/{workspace}/contracts', [ContractController::class, 'index']);
     Route::post('/workspaces/{workspace}/contracts', [ContractController::class, 'store']);
     Route::get('/contracts/{contract}', [ContractController::class, 'show']);
     Route::put('/contracts/{contract}', [ContractController::class, 'update']);
@@ -96,19 +104,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/contracts/{contract}/clauses/{clause}', [ContractController::class, 'destroyClause']);
 
     // Payments
-    Route::get('/workspaces/{workspace}/payments', [PaymentController::class, 'index']);
-    Route::post('/workspaces/{workspace}/payments', [PaymentController::class, 'store']);
     Route::post('/payments/{payment}/review', [PaymentController::class, 'review']);
     Route::get('/payments/pending', [PaymentController::class, 'pending']);
 
     // Approvals
-    Route::get('/workspaces/{workspace}/approvals', [ApprovalController::class, 'index']);
     Route::post('/workspaces/{workspace}/approvals', [ApprovalController::class, 'store']);
     Route::get('/approvals/{approval}', [ApprovalController::class, 'show']);
     Route::post('/approvals/{approval}/respond', [ApprovalController::class, 'respond']);
 
     // Meetings
-    Route::get('/workspaces/{workspace}/meetings', [MeetingController::class, 'index']);
     Route::post('/workspaces/{workspace}/meetings', [MeetingController::class, 'store']);
 
     // Files — review + definitions (admin only)

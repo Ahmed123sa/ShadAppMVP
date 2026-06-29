@@ -87,7 +87,7 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl shadow-sm border p-6">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6">
         <h3 className="font-bold mb-2">التوقيع الإلكتروني</h3>
 
         {done ? (
@@ -95,15 +95,15 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
             <p className="text-2xl mb-2">✅</p>
             <p className="text-emerald-600 font-medium">تم تسجيل توقيعك</p>
             {existingImage ? (
-              <div className="mt-4 border-t pt-4 flex justify-center">
+              <div className="mt-4 border-t border-[var(--color-card-border)] pt-4 flex justify-center">
                 <img src={existingImage} alt="التوقيع" className="max-w-full h-20 object-contain" />
               </div>
             ) : sigData && !isImageUrl(sigData) ? (
-              <p className="text-lg font-handwriting mt-4 text-zinc-600 border-t pt-4">{sigData}</p>
+              <p className="text-lg font-handwriting mt-4 text-[var(--color-text-secondary)] border-t border-[var(--color-card-border)] pt-4">{sigData}</p>
             ) : null}
             <div className="flex justify-center gap-3 mt-4">
               <button onClick={() => setDone(false)}
-                className="text-sm text-blue-600 hover:underline">تعديل التوقيع</button>
+                className="text-sm text-[var(--color-gold)] hover:underline">تعديل التوقيع</button>
               <button onClick={deleteSignature} disabled={deleting}
                 className="text-sm text-red-600 hover:underline disabled:opacity-50">
                 {deleting ? '...' : 'حذف التوقيع'}
@@ -115,36 +115,36 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
             {!preview && (
               <div className="flex gap-2 mb-3">
                 <button onClick={() => { setMode('text'); setPreview(null); }}
-                  className={`px-4 py-1.5 text-sm rounded-lg border ${mode === 'text' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-zinc-600'}`}>نص</button>
+                  className={`px-4 py-1.5 text-sm rounded-lg border ${mode === 'text' ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : 'bg-[var(--color-card)] text-[var(--color-text-secondary)]'}`}>نص</button>
                 <button onClick={() => { setMode('image'); setSignature(''); }}
-                  className={`px-4 py-1.5 text-sm rounded-lg border ${mode === 'image' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-zinc-600'}`}>صورة PNG</button>
+                  className={`px-4 py-1.5 text-sm rounded-lg border ${mode === 'image' ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]' : 'bg-[var(--color-card)] text-[var(--color-text-secondary)]'}`}>صورة PNG</button>
               </div>
             )}
 
             {mode === 'text' && !preview && (
               <>
-                <p className="text-sm text-zinc-500">اكتب اسمك كاملاً للتوقيع الإلكتروني</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">اكتب اسمك كاملاً للتوقيع الإلكتروني</p>
                 <textarea value={signature} onChange={(e) => setSignature(e.target.value)}
-                  className="border rounded-lg px-4 py-3 text-lg font-medium w-full h-24 text-center"
+                  className="border border-[var(--color-input-border)] rounded-lg px-4 py-3 text-lg font-medium w-full h-24 text-center bg-[var(--color-input-fill)] text-[var(--color-foreground)] placeholder-[var(--color-text-disabled)]"
                   placeholder="اكتب اسمك هنا..." />
               </>
             )}
 
             {mode === 'image' && (
               <>
-                <p className="text-sm text-zinc-500">ارفع صورة توقيعك بصيغة PNG {SIG_W}×{SIG_H} بكسل</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">ارفع صورة توقيعك بصيغة PNG {SIG_W}×{SIG_H} بكسل</p>
                 <input ref={fileRef} type="file" accept=".png" onChange={handleFile} className="hidden" />
                 <div onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-zinc-50 transition">
+                  className="border-2 border-dashed border-[var(--color-card-border)] rounded-xl p-8 text-center cursor-pointer bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] transition">
                   {preview ? (
                     <img src={preview} alt="التوقيع" className="mx-auto max-h-32 object-contain" />
                   ) : existingImage ? (
                     <img src={existingImage} alt="التوقيع" className="mx-auto max-h-32 object-contain" />
                   ) : (
-                    <p className="text-zinc-400 text-sm">انقر لاختيار ملف PNG</p>
+                    <p className="text-[var(--color-text-disabled)] text-sm">انقر لاختيار ملف PNG</p>
                   )}
                 </div>
-                <p className="text-xs text-zinc-400">سيتم تحجيم الصورة تلقائياً إلى {SIG_W}×{SIG_H} بكسل</p>
+                <p className="text-xs text-[var(--color-text-disabled)]">سيتم تحجيم الصورة تلقائياً إلى {SIG_W}×{SIG_H} بكسل</p>
               </>
             )}
 
@@ -153,7 +153,7 @@ export default function ClientSignature({ clientId, clientData, onSigned }: { cl
             <canvas ref={canvasRef} className="hidden" />
 
             <button onClick={save} disabled={saving || (mode === 'text' && !signature.trim()) || (mode === 'image' && !preview)}
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              className="bg-[var(--color-primary)] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50">
               {saving ? 'جاري الحفظ...' : 'حفظ التوقيع'}
             </button>
           </div>

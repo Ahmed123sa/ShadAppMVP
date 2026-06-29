@@ -1,21 +1,21 @@
 'use client';
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-zinc-100 text-zinc-600',
-  sent: 'bg-blue-100 text-blue-700',
-  client_approved: 'bg-green-100 text-green-700',
-  client_rejected: 'bg-red-100 text-red-700',
-  edit_requested: 'bg-amber-100 text-amber-700',
-  company_approved: 'bg-purple-100 text-purple-700',
-  completed: 'bg-emerald-100 text-emerald-700',
-  archived: 'bg-zinc-200 text-zinc-500',
-  pending: 'bg-yellow-100 text-yellow-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  active: 'bg-green-100 text-green-700',
-  inactive: 'bg-zinc-100 text-zinc-500',
-  scheduled: 'bg-blue-100 text-blue-700',
-  cancelled: 'bg-red-100 text-red-700',
+  draft: 'bg-zinc-700/30 text-zinc-400',
+  sent: 'bg-blue-900/30 text-blue-400',
+  client_approved: 'bg-green-900/30 text-green-400',
+  client_rejected: 'bg-red-900/30 text-red-400',
+  edit_requested: 'bg-amber-900/30 text-amber-400',
+  company_approved: 'bg-purple-900/30 text-purple-400',
+  completed: 'bg-emerald-900/30 text-emerald-400',
+  archived: 'bg-zinc-700/30 text-zinc-500',
+  pending: 'bg-yellow-900/30 text-yellow-400',
+  approved: 'bg-green-900/30 text-green-400',
+  rejected: 'bg-red-900/30 text-red-400',
+  active: 'bg-green-900/30 text-green-400',
+  inactive: 'bg-zinc-700/30 text-zinc-500',
+  scheduled: 'bg-blue-900/30 text-blue-400',
+  cancelled: 'bg-red-900/30 text-red-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -31,7 +31,7 @@ const statusLabels: Record<string, string> = {
 
 export function StatusBadge({ status, className = '' }: { status: string; className?: string }) {
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || 'bg-zinc-100 text-zinc-600'} ${className}`}>
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status] || 'bg-zinc-700/30 text-zinc-400'} ${className}`}>
       {statusLabels[status] || status}
     </span>
   );

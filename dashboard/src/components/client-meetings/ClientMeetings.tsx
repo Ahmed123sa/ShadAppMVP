@@ -30,27 +30,27 @@ export default function ClientMeetings({ wsId }: { wsId: number }) {
     <div className="space-y-3">
       {meetings.length === 0 ? <EmptyState message="لا توجد اجتماعات" /> : null}
       {meetings.map((m) => (
-        <div key={m.id} className="border rounded-lg p-4">
+        <div key={m.id} className="border border-[var(--color-card-border)] rounded-lg p-4">
           <div className="flex justify-between items-start">
             <div>
               <h4 className="font-medium">{m.title}</h4>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-[var(--color-text-disabled)] mt-0.5">
                 {formatDate(m.scheduled_at)} • {m.duration_minutes} دقيقة
               </p>
-              {m.notes && <p className="text-xs text-zinc-400 mt-0.5">{m.notes}</p>}
+              {m.notes && <p className="text-xs text-[var(--color-text-disabled)] mt-0.5">{m.notes}</p>}
             </div>
             <StatusBadge status={m.status} />
           </div>
           {m.status === 'scheduled' && m.link && (
             <div className="mt-3">
               <a href={m.link} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                className="inline-flex items-center gap-1.5 text-xs bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-dark)]">
                 🎥 انضمام إلى الاجتماع
               </a>
             </div>
           )}
           {m.passcode && (
-            <p className="text-xs text-zinc-400 mt-1">رمز الدخول: {m.passcode}</p>
+            <p className="text-xs text-[var(--color-text-disabled)] mt-1">رمز الدخول: {m.passcode}</p>
           )}
         </div>
       ))}

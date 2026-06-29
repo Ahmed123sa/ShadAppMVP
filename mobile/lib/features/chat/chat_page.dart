@@ -67,7 +67,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _load() async {
     try {
       final data = await _api.get('/workspaces/${_api.workspaceIdSafe}/chat');
-      _messages = data['messages'] as List<dynamic>? ?? [];
+      _messages = safeList(data['messages']);
     } catch (_) {}
     if (mounted) {
       setState(() => _loading = false);

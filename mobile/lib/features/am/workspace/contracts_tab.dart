@@ -34,7 +34,7 @@ class _ContractsTabState extends State<ContractsTab> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/$wsId/contracts');
-      _contracts = data['contracts'] as List<dynamic>;
+      _contracts = safeList(data['contracts']);
     } on ServerException catch (e) {
       _error = e.message;
     } catch (_) {
@@ -62,7 +62,7 @@ class _ContractsTabState extends State<ContractsTab> {
       await _api.post('/contracts/$id/$action');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.contractUpdated)));
-        _load();
+        await _load();
       }
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred)));

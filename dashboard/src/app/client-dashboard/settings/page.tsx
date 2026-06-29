@@ -68,18 +68,18 @@ export default function ClientSettingsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[var(--color-background)]">
+      <header className="bg-[var(--color-card)] border-b border-[var(--color-card-border)] px-6 py-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">ShadApp</h1>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-500">{session?.company_name}</span>
-          <button onClick={clientLogout} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
+          <span className="text-sm text-[var(--color-text-secondary)]">{session?.company_name}</span>
+          <button onClick={clientLogout} className="text-xs bg-[var(--color-input-fill)] hover:bg-zinc-200 px-3 py-1.5 rounded-lg">تسجيل خروج</button>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/client-dashboard')} className="text-zinc-500 hover:text-zinc-800">&larr; رجوع</button>
+          <button onClick={() => router.push('/client-dashboard')} className="text-[var(--color-text-secondary)] hover:text-[var(--color-foreground)]">&larr; رجوع</button>
           <h2 className="text-xl font-bold">الإعدادات</h2>
         </div>
 
@@ -87,38 +87,38 @@ export default function ClientSettingsPage() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-700 text-sm">تم حفظ الإعدادات بنجاح</div>
         )}
 
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+        <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 space-y-6">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-24 h-24 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200">
+            <div className="w-24 h-24 rounded-full bg-[var(--color-input-fill)] overflow-hidden border-2 border-zinc-200">
               {avatarPreview ? (
                 <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl text-zinc-400">
+                <div className="w-full h-full flex items-center justify-center text-3xl text-[var(--color-text-disabled)]">
                   {displayName?.[0] || '?'}
                 </div>
               )}
             </div>
             <button onClick={() => avatarInputRef.current?.click()} type="button"
-              className="bg-zinc-100 hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
+              className="bg-[var(--color-input-fill)] hover:bg-zinc-200 px-4 py-2 rounded-lg text-sm transition-colors">
               تغيير الصورة
             </button>
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-zinc-500">الاسم الظاهر</label>
+            <label className="text-xs text-[var(--color-text-secondary)]">الاسم الظاهر</label>
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-              className="border rounded-lg px-4 py-2 text-sm w-full" />
+              className="border border-[var(--color-card-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-input-fill)] text-[var(--color-foreground)]" />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-zinc-500">البريد الإلكتروني</label>
+            <label className="text-xs text-[var(--color-text-secondary)]">البريد الإلكتروني</label>
             <input value={session?.email || ''} disabled
-              className="border rounded-lg px-4 py-2 text-sm w-full bg-zinc-50 text-zinc-400" dir="ltr" />
+              className="border border-[var(--color-card-border)] rounded-lg px-4 py-2 text-sm w-full bg-[var(--color-card-border)] text-[var(--color-text-disabled)]" dir="ltr" />
           </div>
 
           <button onClick={save} disabled={saving}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 w-full">
+            className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-[var(--color-primary-dark)] disabled:opacity-50 w-full">
             {saving ? '...' : 'حفظ الإعدادات'}
           </button>
         </div>

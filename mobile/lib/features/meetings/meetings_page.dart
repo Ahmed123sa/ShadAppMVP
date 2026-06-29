@@ -32,9 +32,9 @@ class _MeetingsPageState extends State<MeetingsPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/$wsId/meetings');
-      _meetings = data['meetings'] as List<dynamic>? ?? [];
+      _meetings = safeList(data['meetings']);
     } catch (_) {
-      _error = 'فشل تحميل الاجتماعات';
+      _meetings = [];
     }
     if (mounted) setState(() => _loading = false);
   }

@@ -130,6 +130,13 @@ class PaymentController extends Controller
         if ($contractApproved && $paymentApproved) {
             $workspace->update(['status' => 'active', 'activated_at' => now()]);
             Log::info('Workspace activated after payment approval', ['workspace_id' => $workspace->id]);
+        } else {
+            Log::warning('Workspace NOT activated on payment approval', [
+                'workspace_id' => $workspace->id,
+                'has_approved_contracts' => $contractApproved,
+                'payment_id' => $payment->id,
+                'contract_statuses' => $workspace->contracts()->pluck('status')->toArray(),
+            ]);
         }
 
         PaymentReviewed::dispatch($payment, 'approved');

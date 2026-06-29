@@ -32,10 +32,10 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
   if (error) return <p className="text-sm text-red-500 text-center py-8">{error}</p>;
 
   const statusColors: Record<string, string> = {
-    approved: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    rejected: 'bg-red-100 text-red-700',
-    edit_requested: 'bg-amber-100 text-amber-700',
+    approved: 'bg-emerald-900/30 text-emerald-400',
+    pending: 'bg-yellow-900/30 text-yellow-400',
+    rejected: 'bg-red-900/30 text-red-400',
+    edit_requested: 'bg-amber-900/30 text-amber-400',
   };
   const statusLabels: Record<string, string> = {
     approved: '✅ تمت الموافقة',
@@ -48,12 +48,12 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
     <div className="space-y-3">
       {approvals.length === 0 ? <EmptyState message="لا توجد طلبات موافقة" /> : null}
       {approvals.map((a) => (
-        <div key={a.id} className="border rounded-lg p-4">
+        <div key={a.id} className="border border-[var(--color-card-border)] rounded-lg p-4">
           <div className="flex justify-between items-start">
             <div>
               <h4 className="font-medium">{a.title}</h4>
-              {a.description && <p className="text-xs text-zinc-500 mt-0.5">{a.description}</p>}
-              <p className="text-xs text-zinc-400 mt-0.5">المرجع: {a.reference_no}</p>
+              {a.description && <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{a.description}</p>}
+              <p className="text-xs text-[var(--color-text-disabled)] mt-0.5">المرجع: {a.reference_no}</p>
             </div>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[a.status] || ''}`}>
               {statusLabels[a.status] || a.status}
@@ -64,7 +64,7 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
             <div className="mt-2 flex flex-wrap gap-1">
               {a.files.map((f: any) => (
                 <a key={f.id} href={`/storage/${f.file_url}`} target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-blue-600 underline bg-blue-50 px-2 py-0.5 rounded">
+                  className="text-xs text-[var(--color-gold)] underline bg-blue-900/30 px-2 py-0.5 rounded">
                   📎 {f.name || 'ملف'}
                 </a>
               ))}
@@ -72,7 +72,7 @@ export default function ClientApprovals({ wsId, clientId }: { wsId: number; clie
           )}
 
           {a.certificate?.pdf_url && (
-            <div className="mt-2 text-xs text-blue-600">
+            <div className="mt-2 text-xs text-[var(--color-gold)]">
               📄 <a href={`/storage/${a.certificate.pdf_url}`} target="_blank" rel="noopener noreferrer" className="hover:underline">شهادة الموافقة</a>
             </div>
           )}

@@ -13,9 +13,9 @@ export default function CalendarTab({ wsId }: { wsId: number }) {
 
   useEffect(() => {
     Promise.all([
-      api.get(`/workspaces/${wsId}/meetings`).then(({ data }) => setMeetings(data.meetings || [])),
-      api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts || [])),
-      api.get(`/workspaces/${wsId}/approvals`).then(({ data }) => setApprovals(data.approvals || [])),
+      api.get(`/workspaces/${wsId}/meetings`).then(({ data }) => setMeetings(data.meetings?.data || data.meetings || [])),
+      api.get(`/workspaces/${wsId}/contracts`).then(({ data }) => setContracts(data.contracts?.data || data.contracts || [])),
+      api.get(`/workspaces/${wsId}/approvals`).then(({ data }) => setApprovals(data.approvals?.data || data.approvals || [])),
     ]).catch(() => {}).finally(() => setLoading(false));
   }, [wsId]);
 
@@ -64,12 +64,12 @@ export default function CalendarTab({ wsId }: { wsId: number }) {
       {Object.keys(grouped).length === 0 ? <EmptyState message="لا توجد أحداث" /> : null}
       {Object.entries(grouped).map(([date, entries]) => (
         <div key={date}>
-          <h4 className="text-sm font-medium text-zinc-600 mb-1">{new Date(date + 'T12:00:00').toLocaleDateString('ar-SA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</h4>
+          <h4 className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">{new Date(date + 'T12:00:00').toLocaleDateString('ar-SA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</h4>
           <div className="space-y-1 mr-4">
             {entries.map((i, idx) => (
               <div key={`${i.type}-${i.id}-${idx}`} className={`text-sm border-r-2 ${typeStyles[i.type] || 'border-zinc-300'} pr-3 py-1`}>
                 <span className="font-medium">{i.title}</span>
-                <span className={`text-xs mr-2 ${i.type === 'deadline' ? 'text-red-500' : 'text-zinc-400'}`}>{typeLabels[i.type] || i.type}</span>
+                <span className={`text-xs mr-2 ${i.type === 'deadline' ? 'text-red-500' : 'text-[var(--color-text-disabled)]'}`}>{typeLabels[i.type] || i.type}</span>
               </div>
             ))}
           </div>

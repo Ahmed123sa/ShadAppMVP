@@ -6,7 +6,6 @@ import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/loading_state.dart';
-import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/error_state.dart';
 
 class ContractsPage extends StatefulWidget {
@@ -42,11 +41,9 @@ class _ContractsPageState extends State<ContractsPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final data = await _api.get('/workspaces/$wsId/contracts');
-      _contracts = data['contracts'] as List<dynamic>;
-    } on ServerException catch (_) {
-      _error = 'فشل تحميل العقود';
-    } catch (_) {
-      _error = 'فشل تحميل العقود';
+      _contracts = safeList(data['contracts']);
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -98,6 +95,7 @@ class _ContractsPageState extends State<ContractsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ تم ${labels[action] ?? action} العقد')));
         _load();
+        widget.refreshNotifier?.value++;
       }
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تنفيذ الإجراء')));
@@ -132,9 +130,17 @@ class _ContractsPageState extends State<ContractsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const LoadingState();
-    if (_error != null) return ErrorState(message: _error!, onRetry: _load);
-    if (_contracts.isEmpty) return const EmptyState(icon: Icons.description_outlined, title: 'لا توجد عقود');
+    if (_loading) { return const LoadingState(); }
+    if (_error != null) { return ErrorState(message: _error!, onRetry: _load); }
+    if (_contracts.isEmpty) {
+      return const Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3)),
+          SizedBox(height: 16),
+          Text('في انتظار استلام العقد', style: TextStyle(fontSize: 14, color: ShadColors.textSecondary, fontFamily: 'NotoSansArabic')),
+        ]),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: _load,

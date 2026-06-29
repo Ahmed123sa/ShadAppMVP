@@ -34,7 +34,7 @@ class _MeetingsTabState extends State<MeetingsTab> {
       final data = isSA
           ? await _api.get('/all-meetings')
           : await _api.get('/workspaces/${_api.workspaceId}/meetings');
-      _meetings = data['meetings'] as List<dynamic>? ?? [];
+      _meetings = safeList(data['meetings']);
     } catch (_) {
       _error = 'فشل تحميل الاجتماعات';
     }
@@ -210,7 +210,7 @@ class _CreateMeetingFormState extends State<_CreateMeetingForm> {
       final data = await _api.get('/workspaces/$wsId/contracts');
       if (mounted) {
         setState(() {
-          _contracts = (data['contracts'] as List<dynamic>? ?? [])
+          _contracts = safeList(data['contracts'])
               .where((c) => c['status'] == 'active' || c['status'] == 'company_approved')
               .toList();
           _loadingContracts = false;

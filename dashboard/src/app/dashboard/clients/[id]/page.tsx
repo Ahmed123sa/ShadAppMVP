@@ -8,6 +8,7 @@ import type { Client } from '@/types';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import ChatTab from '@/components/chat/ChatTab';
 import FilesTab from '@/components/files/FilesTab';
 import ContractsTab from '@/components/contracts/ContractsTab';
@@ -59,44 +60,42 @@ export default function ClientWorkspace() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border p-5">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-5">
         {editing ? (
           <div className="space-y-2">
             <div className="flex gap-2 flex-wrap">
-              <input value={editForm.company_name} onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })} className="border rounded px-3 py-1 text-sm w-48" placeholder="اسم الشركة" />
-              <input value={editForm.contact_person} onChange={(e) => setEditForm({ ...editForm, contact_person: e.target.value })} className="border rounded px-3 py-1 text-sm w-36" placeholder="الشخص المسؤول" />
-              <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="border rounded px-3 py-1 text-sm w-28" placeholder="الهاتف" />
-              <input value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} className="border rounded px-3 py-1 text-sm w-28" placeholder="البلد" />
-              <input value={editForm.industry} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} className="border rounded px-3 py-1 text-sm w-28" placeholder="المجال" />
-              <button onClick={saveEdit} className="bg-blue-600 text-white px-3 py-1 rounded text-xs">حفظ</button>
-              <button onClick={() => setEditing(false)} className="bg-zinc-100 px-3 py-1 rounded text-xs">إلغاء</button>
+              <input value={editForm.company_name} onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })} className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded px-3 py-1 text-sm w-48" placeholder="اسم الشركة" />
+              <input value={editForm.contact_person} onChange={(e) => setEditForm({ ...editForm, contact_person: e.target.value })} className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded px-3 py-1 text-sm w-36" placeholder="الشخص المسؤول" />
+              <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded px-3 py-1 text-sm w-28" placeholder="الهاتف" />
+              <input value={editForm.country} onChange={(e) => setEditForm({ ...editForm, country: e.target.value })} className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded px-3 py-1 text-sm w-28" placeholder="البلد" />
+              <input value={editForm.industry} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} className="bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded px-3 py-1 text-sm w-28" placeholder="المجال" />
+              <button onClick={saveEdit} className="bg-[var(--color-primary)] text-white px-3 py-1 rounded text-xs">حفظ</button>
+              <button onClick={() => setEditing(false)} className="bg-[var(--color-input-fill)] px-3 py-1 rounded text-xs">إلغاء</button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-zinc-100 overflow-hidden border-2 border-zinc-200 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-[var(--color-input-fill)] overflow-hidden border-2 border-[var(--color-card-border)] flex-shrink-0">
                 {client.avatar_url ? (
                   <img src={resolveFileUrl(client.avatar_url)} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg text-zinc-400">
+                  <div className="w-full h-full flex items-center justify-center text-lg text-[var(--color-text-disabled)]">
                     {client.company_name?.[0] || '?'}
                   </div>
                 )}
               </div>
               <div>
                 <h2 className="text-xl font-bold">{client.company_name}</h2>
-                <p className="text-sm text-zinc-500">{client.contact_person} • {client.email}{client.country ? ` • ${client.country}` : ''}{client.industry ? ` • ${client.industry}` : ''}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">{client.contact_person} • {client.email}{client.country ? ` • ${client.country}` : ''}{client.industry ? ` • ${client.industry}` : ''}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!isSA && <button onClick={() => router.push(`/dashboard/clients/${id}/settings`)} className="text-xs bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors">⚙️</button>}
-              {!isSA && <button onClick={() => setEditing(true)} className="text-xs text-blue-600 hover:underline">تعديل</button>}
-              {!isSA && <button onClick={() => setDeleteConfirm(true)} className="text-xs text-red-500 hover:underline">حذف</button>}
-              <span className={`px-2.5 py-1 rounded-full text-xs ${client.workspace?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'}`}>
-                {client.workspace?.status === 'active' ? 'مساحة عمل نشطة' : 'غير مفعلة'}
-              </span>
-              <span className={`px-2.5 py-1 rounded-full text-xs ${client.signed_at ? 'bg-purple-100 text-purple-700' : 'bg-zinc-100 text-zinc-600'}`}>
+              {!isSA && <button onClick={() => router.push(`/dashboard/clients/${id}/settings`)} className="text-xs bg-[var(--color-input-fill)] hover:bg-[var(--color-card-border)] px-3 py-1.5 rounded-lg transition-colors">⚙️</button>}
+              {!isSA && <button onClick={() => setEditing(true)} className="text-xs text-[var(--color-gold)] hover:underline">تعديل</button>}
+              {!isSA && <button onClick={() => setDeleteConfirm(true)} className="text-xs text-red-400 hover:underline">حذف</button>}
+              <StatusBadge status={client.workspace?.status === 'active' ? 'active' : 'inactive'} />
+              <span className={`px-2.5 py-1 rounded-full text-xs ${client.signed_at ? 'bg-purple-900/30 text-purple-400' : 'bg-[var(--color-input-fill)] text-[var(--color-text-secondary)]'}`}>
                 {client.signed_at ? 'تم التوقيع ✅' : 'لم يتم التوقيع'}
               </span>
             </div>
@@ -104,11 +103,11 @@ export default function ClientWorkspace() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="flex border-b overflow-x-auto">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] overflow-hidden">
+        <div className="flex border-b border-[var(--color-card-border)] overflow-x-auto">
           {TABS.map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3 text-sm whitespace-nowrap border-b-2 transition ${activeTab === tab ? 'border-blue-600 text-blue-600 font-medium' : 'border-transparent text-zinc-500 hover:text-zinc-800'}`}>
+              className={`px-5 py-3 text-sm whitespace-nowrap border-b-2 transition ${activeTab === tab ? 'border-[var(--color-primary)] text-[var(--color-primary)] font-medium' : 'border-transparent text-[var(--color-text-disabled)] hover:text-[var(--color-foreground)]'}`}>
               {tab}
             </button>
           ))}

@@ -26,32 +26,32 @@ export default function ClientFiles({ wsId }: { wsId: number }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
         {definitions.map((d) => (
-          <span key={d.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">
+          <span key={d.id} className="px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded-full text-xs">
             {d.name} {d.is_required ? '*' : ''}
           </span>
         ))}
       </div>
 
-      <button onClick={() => setShowUpload(true)} className="text-sm text-blue-600 hover:underline font-medium">
+      <button onClick={() => setShowUpload(true)} className="text-sm text-[var(--color-gold)] hover:underline font-medium">
         + رفع مستند
       </button>
 
       {files.length === 0 ? <EmptyState message="لا توجد ملفات" /> : null}
       <div className="space-y-2">
         {files.map((f) => (
-          <div key={f.id} className="border rounded-lg p-3 text-sm flex items-center justify-between">
+          <div key={f.id} className="border border-[var(--color-card-border)] rounded-lg p-3 text-sm flex items-center justify-between">
             <div>
               <p className="font-medium">{f.name}</p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-[var(--color-text-disabled)]">
                 {f.document_definition?.name ? `${f.document_definition.name} • ` : ''}
                 {f.size ? `${(f.size / 1024).toFixed(0)} KB` : ''}
               </p>
               {f.rejection_reason && <p className="text-xs text-red-500 mt-1">سبب الرفض: {f.rejection_reason}</p>}
             </div>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              f.status === 'approved' ? 'bg-green-100 text-green-700' :
-              f.status === 'rejected' ? 'bg-red-100 text-red-700' :
-              'bg-yellow-100 text-yellow-700'
+              f.status === 'approved' ? 'bg-green-900/30 text-green-400' :
+              f.status === 'rejected' ? 'bg-red-900/30 text-red-400' :
+              'bg-yellow-900/30 text-yellow-400'
             }`}>
               {f.status === 'approved' ? 'مقبول' : f.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
             </span>

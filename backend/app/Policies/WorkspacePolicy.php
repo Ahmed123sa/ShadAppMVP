@@ -11,6 +11,7 @@ class WorkspacePolicy
 
     public function view($user, Workspace $workspace): bool
     {
+        if ($user instanceof \App\Models\Client && $workspace->client_id === $user->id) return true;
         return $this->isSuperAdmin($user) || $workspace->manager_id === $user->id;
     }
 

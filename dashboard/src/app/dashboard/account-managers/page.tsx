@@ -28,7 +28,7 @@ export default function AccountManagersPage() {
   }, [user]);
 
   if (user?.role !== 'super_admin') {
-    return <div className="text-center py-20 text-zinc-500">غير مصرح لك بعرض هذه الصفحة</div>;
+    return <div className="text-center py-20 text-[var(--color-text-secondary)]">غير مصرح لك بعرض هذه الصفحة</div>;
   }
 
   const resetForm = () => {
@@ -106,27 +106,27 @@ export default function AccountManagersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">المدراء</h2>
-        <button onClick={openCreate} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">+ مدير جديد</button>
+        <button onClick={openCreate} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-primary-dark)]">+ مدير جديد</button>
       </div>
 
       {newCreds && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
-          <p className="text-green-800 font-medium mb-2">تم إنشاء المدير بنجاح</p>
-          <p className="text-sm text-green-700">البريد: {newCreds.email}</p>
-          <p className="text-sm text-green-700">كلمة المرور: {newCreds.password}</p>
-          <button onClick={() => setNewCreds(null)} className="text-xs text-green-600 mt-1 hover:underline">حسناً</button>
+        <div className="bg-green-900/30 border border-green-800/30 rounded-xl p-4 mb-4">
+          <p className="text-green-400 font-medium mb-2">تم إنشاء المدير بنجاح</p>
+          <p className="text-sm text-green-400">البريد: {newCreds.email}</p>
+          <p className="text-sm text-green-400">كلمة المرور: {newCreds.password}</p>
+          <button onClick={() => setNewCreds(null)} className="text-xs text-green-400 mt-1 hover:underline">حسناً</button>
         </div>
       )}
 
       {(showCreate || editId) && (
-        <form onSubmit={editId ? updateManager : createManager} className="bg-white rounded-xl shadow-sm border p-6 mb-6 space-y-4">
-          {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
-          <input className="w-full border rounded-lg px-4 py-2 text-sm" placeholder="الاسم" value={name} onChange={(e) => setName(e.target.value)} required />
-          <input className="w-full border rounded-lg px-4 py-2 text-sm" type="email" placeholder="البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} required dir="ltr" />
-          <input className="w-full border rounded-lg px-4 py-2 text-sm" placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />
+        <form onSubmit={editId ? updateManager : createManager} className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] p-6 mb-6 space-y-4">
+          {error && <div className="bg-red-900/30 text-red-400 text-sm p-3 rounded-lg">{error}</div>}
+          <input className="w-full bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm" placeholder="الاسم" value={name} onChange={(e) => setName(e.target.value)} required />
+          <input className="w-full bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm" type="email" placeholder="البريد الإلكتروني" value={email} onChange={(e) => setEmail(e.target.value)} required dir="ltr" />
+          <input className="w-full bg-[var(--color-input-fill)] border-[var(--color-input-border)] text-[var(--color-foreground)] rounded-lg px-4 py-2 text-sm" placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" />
           {!editId && (
             <div className="space-y-2">
-              <label className="text-xs text-zinc-500 block">كلمة المرور</label>
+              <label className="text-xs text-[var(--color-text-secondary)] block">كلمة المرور</label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1 text-sm cursor-pointer">
                   <input type="radio" name="pwMode" checked={autoPassword} onChange={() => setAutoPassword(true)} />
@@ -146,15 +146,15 @@ export default function AccountManagersPage() {
             <PasswordField value={password} onChange={setPassword} label="كلمة المرور الجديدة" placeholder="اتركه فارغاً لعدم التغيير" opt />
           )}
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm disabled:opacity-50">{saving ? 'جاري الحفظ...' : (editId ? 'تحديث' : 'إنشاء')}</button>
-            <button type="button" onClick={() => { setShowCreate(false); setEditId(null); resetForm(); }} className="bg-zinc-100 px-6 py-2 rounded-lg text-sm">إلغاء</button>
+            <button type="submit" disabled={saving} className="bg-[var(--color-primary)] text-white px-6 py-2 rounded-lg text-sm disabled:opacity-50">{saving ? 'جاري الحفظ...' : (editId ? 'تحديث' : 'إنشاء')}</button>
+            <button type="button" onClick={() => { setShowCreate(false); setEditId(null); resetForm(); }} className="bg-[var(--color-input-fill)] px-6 py-2 rounded-lg text-sm">إلغاء</button>
           </div>
         </form>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-[var(--color-card)] rounded-xl border border-[var(--color-card-border)] overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 border-b">
+          <thead className="bg-[var(--color-card-border)] border-b border-[var(--color-card-border)]">
             <tr>
               <th className="text-right p-4 font-medium">الاسم</th>
               <th className="text-right p-4 font-medium">البريد</th>
@@ -165,15 +165,15 @@ export default function AccountManagersPage() {
           </thead>
           <tbody>
             {managers.map((m: any) => (
-              <tr key={m.id} className="border-b">
+              <tr key={m.id} className="border-b border-[var(--color-card-border)]">
                 <td className="p-4">{m.name}</td>
                 <td className="p-4">{m.email}</td>
                 <td className="p-4">{m.phone || '—'}</td>
                 <td className="p-4">{m.managed_clients_count || 0}</td>
                 <td className="p-4 text-center">
                   <div className="flex gap-2 justify-center">
-                    <button onClick={() => startEdit(m)} className="text-xs text-blue-600 hover:underline border border-blue-200 rounded px-2 py-1">تعديل</button>
-                    <button onClick={() => deleteManager(m.id)} className="text-xs text-red-600 hover:underline border border-red-200 rounded px-2 py-1">حذف</button>
+                    <button onClick={() => startEdit(m)} className="text-xs text-[var(--color-gold)] hover:underline border border-blue-200 rounded px-2 py-1">تعديل</button>
+                    <button onClick={() => deleteManager(m.id)} className="text-xs text-red-400 hover:underline border border-red-200 rounded px-2 py-1">حذف</button>
                   </div>
                 </td>
               </tr>
