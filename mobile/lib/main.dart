@@ -59,7 +59,7 @@ void main() async {
   router = createRouter(api, initialLocation: initialLocation);
 
   if (pendingNotifData != null) {
-    _navigateFromNotification(pendingNotifData!, router);
+    await _navigateFromNotification(pendingNotifData!, router);
   }
 
   final localeProvider = LocaleProvider();
@@ -77,17 +77,21 @@ void main() async {
   );
 }
 
-void _navigateFromNotification(Map<String, String> data, GoRouter router) {
-  final type = data['type'];
+Future<void> _navigateFromNotification(Map<String, String> data, GoRouter router) async {
   final workspaceId = data['workspace_id'];
 
-  if (type == 'chat' || type == 'approval') {
-    if (workspaceId != null) {
-      router.go('/am/workspace/$workspaceId');
-      return;
-    }
+  final role = await ApiClient().getRole();
+
+  if (role == 'client') {
+    router.go('/dashboard');
+    return;
   }
-  router.go('/am/dashboard');
+
+  if (workspaceId != null) {
+    router.go('/am/workspace/$workspaceId');
+  } else {
+    router.go('/am/dashboard');
+  }
 }
 
 class ShadApp extends StatefulWidget {

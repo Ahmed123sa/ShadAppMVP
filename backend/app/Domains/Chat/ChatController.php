@@ -86,7 +86,11 @@ class ChatController extends Controller
             ]);
         }
 
-        broadcast(new MessageSent($message))->toOthers();
+        try {
+            broadcast(new MessageSent($message))->toOthers();
+        } catch (\Exception $e) {
+            Log::warning('Chat broadcast failed (non-critical): ' . $e->getMessage());
+        }
 
         // إرسال إشعار FCM للطرف الآخر
         $recipient = null;

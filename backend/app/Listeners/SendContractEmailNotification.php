@@ -15,6 +15,7 @@ use App\Notifications\ContractClientApprovedNotification;
 use App\Notifications\ContractCompanyApprovedNotification;
 use App\Notifications\ContractSentNotification;
 use App\Notifications\ContractCompletedNotification;
+use App\Notifications\ContractClientSignedNotification;
 use App\Services\ContractPdfService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -109,6 +110,11 @@ class SendContractEmailNotification
                     $r['user']->notify(new ContractClientApprovedNotification($contract));
                 } catch (\Exception $e) {
                     Log::warning('Failed to send notification: ' . $e->getMessage());
+                }
+                try {
+                    $r['user']->notify(new ContractClientSignedNotification($contract));
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send signed notification: ' . $e->getMessage());
                 }
             }
         }

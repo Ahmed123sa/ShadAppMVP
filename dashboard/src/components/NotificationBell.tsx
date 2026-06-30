@@ -34,7 +34,13 @@ export default function NotificationBell() {
 
   const getHref = (n: any) => {
     const d = n.data;
-    if (d?.contract_id) return `/dashboard/clients/${d.client_id || d.workspace_id}`;
+    const clientId = d?.client_id || d?.workspace_id;
+    if (d?.type === 'chat') return clientId ? `/dashboard/clients/${clientId}` : '#';
+    if (d?.payment_id) return clientId ? `/dashboard/clients/${clientId}` : '#';
+    if (d?.approval_id) return clientId ? `/dashboard/clients/${clientId}` : '#';
+    if (d?.contract_id) return `/dashboard/clients/${clientId}`;
+    if (d?.meeting_id && clientId) return `/dashboard/clients/${clientId}`;
+    if (d?.workspace_id) return `/dashboard/clients/${d.workspace_id}`;
     return '#';
   };
 
